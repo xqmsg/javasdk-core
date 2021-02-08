@@ -10,43 +10,44 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-/*** Get ser information.
+
+
+/**
+ * Gets the notification and newsletter settings for the current user.
  */
-public class GetUserInfo extends XQModule {
+public class GetSettings extends XQModule {
 
-  private static final Logger logger = Logger(GetUserInfo.class);
+  private static final Logger logger = Logger(GetSettings.class);
 
-  public static final String ID="id";
-  public static final String FIRST_NAME="firstName";
-  public static final String LAST_NAME="lastName";
-  public static final String USER="user";
-  public static final String SUBSCRIPTION_STATUS="sub";
-  public static final String STARTS="starts";
-  public static final String ENDS="ends";
+  public static final String NOTIFICATIONS = "notifications";
+  public static final String NEWSLETTER = "newsletter";
 
-  private static final String SERVICE_NAME = "subscriber";
+  private static final String SERVICE_NAME = "settings";
 
-  private GetUserInfo(XQSDK sdk) {
-     assert sdk != null : "An instance of the XQSDK is required";
-     super.sdk = sdk;
-     super.cache = sdk.getCache();
+  private GetSettings(XQSDK sdk) {
+    assert sdk != null : "An instance of the XQSDK is required";
+    super.sdk = sdk;
+    super.cache = sdk.getCache();
+
   }
 
   @Override
-  public List<String> requiredFields() { return  List.of(); }
+  public List<String> requiredFields() {
+    return List.of();
+  }
 
   /**
    * @param sdk App Settings
    * @returns this
    */
-  public static GetUserInfo with(XQSDK sdk) {
-    return new GetUserInfo(sdk);
+  public static GetSettings with(XQSDK sdk) {
+    return new GetSettings(sdk);
   }
 
   /**
    * @param maybeArgs Map of request parameters supplied to this method.
-   * <pre>parameter details:none</pre>
-   * @returns CompletableFuture&lt;ServerResponse#payload:{id:long, usr:string, firstName:string, sub:string, starts:long, ends:Long}>
+   *                  <pre>parameter details:none</pre>
+   * @returns CompletableFuture&lt;ServerResponse#payload:{notifications:Notifications, newsLetter:boolean}>
    * @apiNote !=required ?=optional [...]=default {...} map
    */
   @Override
@@ -62,9 +63,10 @@ public class GetUserInfo extends XQModule {
                                       CallMethod.Get,
                                       Optional.of(headerProperties),
                                       maybeArgs);
-                   })
-            )
-            .apply(maybeArgs));
+
+                            })
+            ).apply(maybeArgs));
+
 
   }
 

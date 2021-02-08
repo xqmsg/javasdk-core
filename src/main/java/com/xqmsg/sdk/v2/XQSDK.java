@@ -3,10 +3,11 @@ package com.xqmsg.sdk.v2;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.xqmsg.com.sdk.v2.caching.SimpleXQCache;
+import com.xqmsg.com.sdk.v2.caching.XQCache;
 import com.xqmsg.sdk.v2.algorithms.AESEncryption;
 import com.xqmsg.sdk.v2.algorithms.OTPv2Encryption;
 import com.xqmsg.sdk.v2.algorithms.XQAlgorithm;
-import com.xqmsg.sdk.v2.utils.Base64Util;
 import com.xqmsg.sdk.v2.utils.XQMsgJSONTypeAdapter;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -19,10 +20,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -34,35 +36,44 @@ import java.util.stream.Collectors;
 
 public class XQSDK {
 
+  private final Logger logger = Logger.getLogger(getClass().getName(), null);
+
   public static final String API_KEY = "api-key";
   public static final String CONTENT_TYPE = "content-type";
   public static final String APPLICATION_JSON = "application/json";
   public static final String TEXT_PLAIN_UTF_8 = "text/plain;charset=UTF-8";
 
-  private final Logger logger = Logger.getLogger(getClass().getName(), null);
-
-  public final URL SUBSCRIPTION_SERVER_URL;
-  public final URL VALIDATION_SERVER_URL;
-  public final URL KEY_SERVER_URL;
-
   public final String APPLICATION_KEY;
+
+  public URL SUBSCRIPTION_SERVER_URL;
+  public URL VALIDATION_SERVER_URL;
+  public URL KEY_SERVER_URL;
 
   private final HashMap<AlgorithmEnum, XQAlgorithm> ALGORITHMS;
 
-  private final Map<String, Object> prefs = new HashMap<>();
+  private final XQCache cache;
 
-  /// A store of all the currently logged in users.
-  private final HashMap<String, User> users = new HashMap<>();
+  public XQSDK() {
 
-  private final HashMap<String, String> accessTokens = new HashMap<>();
+    Properties  applicationProperties = getApplicationProperties();
 
-  public XQSDK() throws MalformedURLException {
+    String cachingMechanism = applicationProperties.getProperty("com.xq-msg.sdk.v2.cache-key");
 
-    Properties applicationProperties = getApplicationProperties();
+    try {
 
-    SUBSCRIPTION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.subscription-server-url"));
-    VALIDATION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.validation-server-url"));
-    KEY_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.key-server-url"));
+      SUBSCRIPTION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.subscription-server-url"));
+      VALIDATION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.validation-server-url"));
+      KEY_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.key-server-url"));
+
+      cache = ((Constructor<SimpleXQCache>)
+               Class.forName(cachingMechanism)
+                    .getDeclaredConstructor())
+                    .newInstance();
+
+    } catch (NoSuchMethodException | ClassNotFoundException | IllegalAccessException | InstantiationException | InvocationTargetException | MalformedURLException e) {
+      e.printStackTrace();
+      throw new RuntimeException(String.format("Fatal Configuration Exception %s ", e.getMessage()), e);
+    }
 
     APPLICATION_KEY = applicationProperties.getProperty("com.xq-msg.sdk.v2.api-key");
 
@@ -108,13 +119,15 @@ public class XQSDK {
     try {
 
       maybeHeaderProperties.ifPresentOrElse(
-          (headerProperties) -> {
-             headerProperties.forEach(httpsConnection::setRequestProperty);
-             if (!headerProperties.containsKey(XQSDK.CONTENT_TYPE)) {
-               httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
-             }
-         },
-         () ->{ httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);}
+              (headerProperties) -> {
+                headerProperties.forEach(httpsConnection::setRequestProperty);
+                if (!headerProperties.containsKey(XQSDK.CONTENT_TYPE)) {
+                  httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
+                }
+              },
+              () -> {
+                httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
+              }
       );
 
       writeToOutputStream(maybePayload.orElseGet(Collections::emptyMap), httpsConnection);
@@ -126,7 +139,7 @@ public class XQSDK {
     } catch (Exception e) {
       return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
     } finally {
-        httpsConnection.disconnect();
+      httpsConnection.disconnect();
     }
   }
 
@@ -153,7 +166,9 @@ public class XQSDK {
                   connection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
                 }
               },
-              () ->{ connection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);}
+              () -> {
+                connection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
+              }
       );
 
       Map<String, Object> response = receiveData(connection);
@@ -239,83 +254,6 @@ public class XQSDK {
             .orElse("");
   }
 
-
-  public void addUser(String email, User user) {
-    this.users.put(email, user);
-  }
-
-  public void addAccessToken(String email, String accessToken) {
-    this.accessTokens.put(email, accessToken);
-  }
-
-  public void removeAccessToken(String email) {
-    this.accessTokens.remove(email);
-  }
-
-  public String getAccessToken(String email) {
-    return this.accessTokens.get(email);
-  }
-
-
-  public List<String> getUserList() {
-    return Arrays.asList(this.users.keySet().toArray(new String[0]));
-  }
-
-
-  public User getUser(String email) {
-    return this.users.get(email);
-  }
-
-  /// Checks whether the user with the provided email address is logged on or not.
-  ///
-  /// - Parameter sender: The email address to check.
-  /// - Returns: True if logged in, otherwise false.
-  public boolean isLoggedIn(String sender) {
-    return this.users != null && this.users.containsKey(sender);
-  }
-
-  /// Create an identifier from a list of provided emails.
-  ///
-  /// - Parameter emails: A list of accounts (e.g. emails) that are allowed to read this message.
-  /// - Returns: A comma-delimited string of encoded identifiers.
-  public String codedSignature(List<String> accounts) {
-    return accounts.stream()
-            .map((str) -> {
-              String b64 = Base64Util.encodeToString(str.trim().toLowerCase().getBytes());
-              return b64.substring(0, b64.length() - 1);
-            })
-            .collect(Collectors.joining(","));
-  }
-
-  /// Saves a reset request for a particular account.
-  ///
-  /// - Parameters:
-  ///   - account: The account with the reset request.
-  ///   - code: The code provided by the server associated with this request.
-  public void addResetRequest(String account, String code) {
-    prefs.put("reset." + account, code);
-  }
-
-
-  /// Checks whether a particular account has an outstanding reset request.
-  ///
-  /// - Parameter account: The account to check.
-  /// - Returns: True if that account has a pending request. Otherwise, returns false.
-  public boolean pendingResetRequest(String account) {
-    return prefs.getOrDefault("reset." + account, null) != null;
-  }
-
-  /// Retrieves the reset code for a particular account ( or null if none is found).
-  ///
-  /// - Parameter account: The account to check.
-  /// - Returns: The reset code (nil if none is found).
-  public String pendingReset(String account) {
-
-    return (String) prefs.getOrDefault("reset." + account, null);
-
-  }
-
-
   private void writeToOutputStream(Map payload, HttpsURLConnection httpsConnection) throws IOException {
     String dataString = null;
     if (APPLICATION_JSON.equals(httpsConnection.getRequestProperty(XQSDK.CONTENT_TYPE))) {
@@ -328,7 +266,6 @@ public class XQSDK {
       os.write(input, 0, input.length);
     }
   }
-
 
   private Map<String, Object> receiveData(HttpsURLConnection httpConnection) throws IOException {
 
@@ -344,14 +281,14 @@ public class XQSDK {
     try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
       responseBuilder = new StringBuilder();
       String responseLine = null;
-      int l=0;
-      boolean appendNewLine=false;
+      int l = 0;
+      boolean appendNewLine = false;
       while ((responseLine = br.readLine()) != null) {
         responseBuilder.append(responseLine.trim());
-        if(l==0 && prefixes.contains(responseLine.substring(0,2))) {
-          appendNewLine=true;
+        if (l == 0 && prefixes.contains(responseLine.substring(0, 2))) {
+          appendNewLine = true;
         }
-        if(appendNewLine){
+        if (appendNewLine) {
           responseBuilder.append("\n");
         }
         ++l;
@@ -360,31 +297,33 @@ public class XQSDK {
       e.printStackTrace();
     }
 
-    String responseString = responseBuilder.toString();
+    String responseString = responseBuilder.toString().trim();
 
     if (httpConnection.getResponseCode() < 200 | httpConnection.getResponseCode() > 299) {
       throw new IOException(responseString);
     } else {
-            switch (responseString){
-              case "":
-                responseString = "{status:\"OK\", data:\"No Content\"}";
-                break;
-              default:{
-                if(!responseString.contains("status")){
-                  responseString= String.format("{status:\"OK\", data:\"%s\"}", responseString);
-                }
-              }
-              break;
-            }
+      switch (responseString) {
+        case "":
+          responseString = "{status:\"OK\", data:\"No Content\"}";
+          break;
+        default: {
+          if (!responseString.contains("status")) {
+            responseString = String.format("{status:\"OK\", data:\"%s\"}", responseString);
+          }
+        }
+        break;
+      }
     }
 
     GsonBuilder gsonBuilder = new GsonBuilder();
 
-    gsonBuilder.registerTypeAdapter(new TypeToken<Map <String, Object>>(){}.getType(),  new XQMsgJSONTypeAdapter());
+    gsonBuilder.registerTypeAdapter(new TypeToken<Map<String, Object>>() {
+    }.getType(), new XQMsgJSONTypeAdapter());
 
     Gson gson = gsonBuilder.create();
 
-    return gson.fromJson(responseString, new TypeToken<Map<String, Object>>(){}.getType() );
+    return gson.fromJson(responseString, new TypeToken<Map<String, Object>>() {
+    }.getType());
 
   }
 
@@ -413,5 +352,13 @@ public class XQSDK {
       return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
     }
   }
+
+  /**
+   * @return XQCache
+   */
+  public XQCache getCache() {
+    return cache;
+  }
+
 
 }

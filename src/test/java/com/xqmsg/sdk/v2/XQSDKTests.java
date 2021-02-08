@@ -1,52 +1,49 @@
 package com.xqmsg.sdk.v2;
 
 
+import com.xqmsg.com.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.services.Authorize;
+import com.xqmsg.sdk.v2.services.AuthorizeAlias;
+import com.xqmsg.sdk.v2.services.AuthorizeDelegate;
+import com.xqmsg.sdk.v2.services.CheckApiKey;
 import com.xqmsg.sdk.v2.services.CheckKeyExpiration;
-import com.xqmsg.sdk.v2.services.CreateDelegateAccessToken;
+import com.xqmsg.sdk.v2.services.CodeValidator;
+import com.xqmsg.sdk.v2.services.CombineAuthorizations;
 import com.xqmsg.sdk.v2.services.Decrypt;
-import com.xqmsg.sdk.v2.services.DeleteAccessCredentials;
-import com.xqmsg.sdk.v2.services.DeleteUser;
+import com.xqmsg.sdk.v2.services.DeleteAuthorization;
+import com.xqmsg.sdk.v2.services.DeleteSubscriber;
 import com.xqmsg.sdk.v2.services.Encrypt;
-import com.xqmsg.sdk.v2.services.ExchangeForAccessToken;
+import com.xqmsg.sdk.v2.services.FetchKey;
 import com.xqmsg.sdk.v2.services.FileDecrypt;
 import com.xqmsg.sdk.v2.services.FileEncrypt;
+import com.xqmsg.sdk.v2.services.GetSettings;
 import com.xqmsg.sdk.v2.services.GetUserInfo;
-import com.xqmsg.sdk.v2.services.GetUserSettings;
-import com.xqmsg.sdk.v2.services.MergeTokens;
-import com.xqmsg.sdk.v2.services.RequestAccess;
-import com.xqmsg.sdk.v2.services.RetrieveKey;
+import com.xqmsg.sdk.v2.services.GrantKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeKeyAccess;
-import com.xqmsg.sdk.v2.services.UpdateUserSettings;
-import com.xqmsg.sdk.v2.services.ValidateAccessRequest;
+import com.xqmsg.sdk.v2.services.RevokeUserAccess;
+import com.xqmsg.sdk.v2.services.UpdateSettings;
 import com.xqmsg.sdk.v2.utils.DateTimeFormats;
 import org.joda.time.LocalDateTime;
 import org.joda.time.Period;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
-import java.util.stream.IntStream;
 
 import static com.xqmsg.sdk.v2.CallStatus.Ok;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,76 +57,56 @@ class XQSDKTests {
 
   private static final Logger logger = getLogger(XQSDKTests.class);
 
-  @TempDir
-  static Path sharedTempDir;
-  static private final boolean TEMPORARY = true;
-  static private final boolean PERMANENT = false;
+  static Map<String, String> map = null;
 
-  static XQSDK sdk ;
+  static XQSDK sdk;
 
   @BeforeAll
-  static void init() throws MalformedURLException {
-
+  static void init() {
     sdk = new XQSDK();
-    if(Boolean.parseBoolean(System.getProperty("clear-cache", "true"))) {
-      clearCache();
-    }else{
-      String email = System.getProperty("xqsdk-user.email");
-      String accessToken = cached(email, "accessToken", PERMANENT);
-      if (accessToken != null) {
-        sdk.addAccessToken(email, accessToken);
-      }else{
-        fail(String.format(" %s not in cache. Try clearing cache, i.e. -Dclear-cache=true", email));
-      }
+    if (Boolean.parseBoolean(System.getProperty("clear-cache", "true"))) {
+      sdk.getCache().clearAllProfiles();
     }
-
+    map = new HashMap<>();
   }
 
 
   /**
    * This test  requires user input. <br> You may have to configure IntelliJ to do so. <br>
    * Please see {@link #readOneLineFromTerminalInput} for more information.<br>
-   *
    */
   @Test
-  @Order(1)
-  void testRequestAccess() throws Exception {
+  @Order(10)
+  void testAuthorize() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
 
-    if (sdk.getAccessToken(email) == null) {
+    try {
+      sdk.getCache().getXQAccess(email, true);
+    } catch (StatusCodeException e) {
+
+      logger.info(String.format("%s", e.statusMessage()));
 
       Map<String, Object> payload =
-              Map.of(RequestAccess.USER, email,
-                      RequestAccess.FIRST_NAME, "User",
-                      RequestAccess.LAST_NAME, "XQMessage",
-                      RequestAccess.NEWSLETTER, true,
-                      RequestAccess.NOTIFICATIONS,
+              Map.of(Authorize.USER, email,
+                      Authorize.FIRST_NAME, "User",
+                      Authorize.LAST_NAME, "XQMessage",
+                      Authorize.NEWSLETTER, true,
+                      Authorize.NOTIFICATIONS,
                       Notifications.TUTORIALS.ordinal());
 
-      String accessToken = requestAccess(sdk, payload).get();
-      assertNotEquals("", accessToken);
+      String newAccessToken = authorize(sdk, payload).get();
+      assertNotEquals("", newAccessToken);
 
-      cache(email, "accessToken", accessToken, PERMANENT);
-      sdk.addAccessToken(email, accessToken);
     }
 
   }
 
   @Test
-  @Order(2)
+  @Order(20)
   void testGetUserInfo() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
-
-    GetUserInfo.with(sdk, accessToken)
+    GetUserInfo.with(sdk)
             .supplyAsync(Optional.empty())
             .thenAccept((serverResponse) -> {
 
@@ -171,27 +148,18 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(3)
+  @Order(30)
   void testGetUserSettings() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
-
-    GetUserSettings.with(sdk, accessToken)
+    GetSettings.with(sdk)
             .supplyAsync(Optional.empty())
             .thenAccept((serverResponse) -> {
 
               switch (serverResponse.status) {
                 case Ok: {
 
-                  boolean newsletter = (Boolean) serverResponse.payload.get(GetUserSettings.NEWSLETTER);
-                  Long notifications = (Long) serverResponse.payload.get(GetUserSettings.NOTIFICATIONS);
+                  boolean newsletter = (Boolean) serverResponse.payload.get(GetSettings.NEWSLETTER);
+                  Long notifications = (Long) serverResponse.payload.get(GetSettings.NOTIFICATIONS);
 
                   logger.info("Receives Newsletters: " + newsletter);
                   logger.info("Notifications: " + Notifications.name(Long.valueOf(notifications).intValue()));
@@ -211,23 +179,14 @@ class XQSDKTests {
 
   }
 
-
   @Test
-  @Order(4)
+  @Order(40)
   void testUpdateUserSettings() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
 
-    Map<String, Object> payload = Map.of(GetUserSettings.NEWSLETTER, false, GetUserSettings.NOTIFICATIONS, 2);
+    Map<String, Object> payload = Map.of(GetSettings.NEWSLETTER, false, GetSettings.NOTIFICATIONS, 2);
 
-    UpdateUserSettings.with(sdk, accessToken)
+    UpdateSettings.with(sdk)
             .supplyAsync(Optional.of(payload))
             .thenAccept((serverResponse) -> {
 
@@ -253,24 +212,15 @@ class XQSDKTests {
 
   }
 
-
-
   /**
    * This test  requires user input. <br> You may have to configure IntelliJ to do so. <br>
    * Please see {@link #readOneLineFromTerminalInput} for more information.<br>
    */
   @Test
-  @Order(5)
+  @Order(50)
   void testEncrypt() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
 
     List recipients = List.of(System.getProperty("xqsdk-recipients.email"));
 
@@ -289,14 +239,14 @@ class XQSDKTests {
                     "В тумане спрятанного солнца,\n" +
                     "Кругом шумел.\n";
 
-    cache(email, "originalText", text, PERMANENT);
+    map.put("originalText", text);
 
     String encryptionResult = Encrypt
-            .with(sdk, AlgorithmEnum.OTPv2, accessToken)
+            .with(sdk, AlgorithmEnum.OTPv2)
             .supplyAsync(Optional.of(Map.of(Encrypt.USER, email,
-                                            Encrypt.TEXT, text,
-                                            Encrypt.RECIPIENTS, recipients,
-                                            Encrypt.MESSAGE_EXPIRATION_HOURS, 1)))
+                    Encrypt.TEXT, text,
+                    Encrypt.RECIPIENTS, recipients,
+                    Encrypt.MESSAGE_EXPIRATION_HOURS, 1)))
             .thenApply(
                     (ServerResponse encryptResponse) -> {
 
@@ -308,8 +258,8 @@ class XQSDKTests {
                           logger.info("Locator Token: " + locatorToken);
                           logger.info("Encrypted Text: " + encryptedText);
 
-                          cache(email, "locatorToken", locatorToken, PERMANENT);
-                          cache(email, "encryptedText", encryptedText, PERMANENT);
+                          map.put("locatorToken", locatorToken);
+                          map.put("encryptedText", encryptedText);
                           return encryptedText;
 
                         }
@@ -330,73 +280,56 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(6)
-  void testDecrypt() throws ExecutionException, InterruptedException {
+  @Order(60)
+  void testDecrypt() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
-
-    String locatorToken = cached(email, Decrypt.LOCATOR_TOKEN, PERMANENT);
-    String encryptedText = cached(email, Decrypt.ENCRYPTED_TEXT, PERMANENT);
+    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
+    String encryptedText = map.get(Decrypt.ENCRYPTED_TEXT);
 
     assert locatorToken != null : "locator token cannot be null";
     assert encryptedText != null : "encrypted text cannot be null";
 
     String decryptionResult = null;
 
-      decryptionResult = Decrypt
-              .with(sdk, AlgorithmEnum.OTPv2, accessToken)
-              .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText)))
-              .thenApply(
-                      (ServerResponse decryptResponse) -> {
-                        switch (decryptResponse.status) {
-                          case Ok: {
-                            return (String) decryptResponse.payload.get(ServerResponse.DATA);
-                          }
-                          case Error: {
-                            return String.format("`testDecryption` failed at decryption stage, reason: %s", decryptResponse.moreInfo());
-                          }
-                          default: {
-                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", decryptResponse.status));
-                          }
-
+    decryptionResult = Decrypt
+            .with(sdk, AlgorithmEnum.OTPv2)
+            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText)))
+            .thenApply(
+                    (ServerResponse decryptResponse) -> {
+                      switch (decryptResponse.status) {
+                        case Ok: {
+                          return (String) decryptResponse.payload.get(ServerResponse.DATA);
                         }
+                        case Error: {
+                          return String.format("`testDecryption` failed at decryption stage, reason: %s", decryptResponse.moreInfo());
+                        }
+                        default: {
+                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", decryptResponse.status));
+                        }
+
                       }
-              ).get();
+                    }
+            ).get();
 
 
     logger.info("Decrypted Text:  " + decryptionResult);
 
-    assertEquals(cached(email, "originalText", PERMANENT), decryptionResult);
+    assertEquals(map.get("originalText"), decryptionResult);
 
 
   }
 
   @Test
-  @Order(7)
+  @Order(70)
   void testKeyRetrieval() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
 
-    String locatorToken = cached(email, Decrypt.LOCATOR_TOKEN, PERMANENT);
+    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
 
     assert locatorToken != null : " locatorToken is null";
 
-    String key = RetrieveKey
-            .with(sdk, accessToken)
+    String key = FetchKey
+            .with(sdk)
             .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken)))
             .thenApply(
                     (ServerResponse serverResponse) -> {
@@ -431,43 +364,41 @@ class XQSDKTests {
    * -Dxqsdk-recipients.john.doe@example.com
    */
   @Test
-  @Order(8)
+  @Order(80)
   void testMergeTokens() throws Exception {
 
     String email1 = System.getProperty("xqsdk-user.email");
-    String accessToken1 = sdk.getAccessToken(email1);
-    if (accessToken1 == null) {
-      accessToken1 = cached(email1, "accessToken", PERMANENT);
-      sdk.addAccessToken(email1, accessToken1);
+    String accessToken1 = sdk.getCache().getXQAccess(email1, true);
+
+    String email2 = null;
+    String accessToken2 = null;
+    try {
+      email2 = System.getProperty("xqsdk-user2.email");
+      accessToken2 = sdk.getCache().getXQAccess(email2, true);
+    } catch (StatusCodeException e) {
+      logger.info(String.format("%s", e.statusMessage()));
+      Map<String, Object> payload2 =
+              Map.of(Authorize.USER, email2,
+                      Authorize.FIRST_NAME, "User2",
+                      Authorize.LAST_NAME, "XQMessage2",
+                      Authorize.NEWSLETTER, false,
+                      Authorize.NOTIFICATIONS,
+                      Notifications.NONE.ordinal());
+
+      accessToken2 = authorize(sdk, payload2).get();
+
+       sdk.getCache().putActiveProfile(email1);
     }
 
-    String email2 = System.getProperty("xqsdk-user2.email");
-    String accessToken2 = sdk.getAccessToken(email2);
-    if (accessToken2 == null) {
-      accessToken2 = cached(email2, "accessToken", PERMANENT);
-      if (accessToken2 == null) {
-        Map<String, Object> payload2 =
-                Map.of(RequestAccess.USER, email2,
-                        RequestAccess.FIRST_NAME, "User2",
-                        RequestAccess.LAST_NAME, "XQMessage",
-                        RequestAccess.NEWSLETTER, false,
-                        RequestAccess.NOTIFICATIONS,
-                        Notifications.NONE.ordinal());
-        accessToken2 = requestAccess(sdk, payload2).get();
-        cache(email2, "accessToken", accessToken2, PERMANENT);
-      }
-      sdk.addAccessToken(email2, accessToken2);
-    }
-
-    String combinedAccessToken = MergeTokens
-            .with(sdk, accessToken1)
-            .supplyAsync(Optional.of(Map.of(MergeTokens.TOKENS, List.of(accessToken2))))
+    String combinedAccessToken = CombineAuthorizations
+            .with(sdk)
+            .supplyAsync(Optional.of(Map.of(CombineAuthorizations.TOKENS, List.of(accessToken2))))
             .thenApply(
                     (ServerResponse serverResponse) -> {
                       switch (serverResponse.status) {
                         case Ok: {
-                          String combined = (String) serverResponse.payload.get(MergeTokens.MERGED_TOKEN);
-                          Long mergeCount = (Long) serverResponse.payload.get(MergeTokens.MERGE_COUNT);
+                          String combined = (String) serverResponse.payload.get(CombineAuthorizations.MERGED_TOKEN);
+                          Long mergeCount = (Long) serverResponse.payload.get(CombineAuthorizations.MERGE_COUNT);
                           logger.info(String.format("Number of tokens combined: %s", mergeCount));
                           return combined;
                         }
@@ -488,25 +419,15 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(9)
+  @Order(90)
   void testCheckKeyExpiration() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
-
-    String locatorToken = cached(email, Decrypt.LOCATOR_TOKEN, PERMANENT);
+    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
 
     assert locatorToken != null : " locatorToken is null";
 
     CheckKeyExpiration
-            .with(sdk, accessToken)
+            .with(sdk)
             .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken)))
             .thenAccept(
                     (ServerResponse serverResponse) -> {
@@ -537,22 +458,12 @@ class XQSDKTests {
 
 
   @Test
-  @Order(10)
-  void testCreateDelegateAccessToken() throws Exception {
-
-    String email = System.getProperty("xqsdk-user.email");
-
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
+  @Order(100)
+  void testAuthorizeDelegate() throws Exception {
 
     String delegateAccessToken =
-            CreateDelegateAccessToken
-                    .with(sdk, accessToken)
+            AuthorizeDelegate
+                    .with(sdk)
                     .supplyAsync(Optional.empty())
                     .thenApply(
                             (ServerResponse serverResponse) -> {
@@ -579,26 +490,17 @@ class XQSDKTests {
   }
 
   /**
-   * If annotated with {@link Disabled}, <br>
-   * see {@link #testDeleteUser()} for more information <br>
+   * Can only be tested this if <br>
+   * {@link #testDeleteSubscriber()}  <br>
+   * is annotated with {@link Disabled}
    */
   @Test
-  @Order(11)
+  @Order(110)
   @Disabled
-  void testDeleteAccessCredentials() throws Exception {
+  void testDeleteAuthorization() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
-
-    String noContent = DeleteAccessCredentials
-            .with(sdk, accessToken)
+    String noContent = DeleteAuthorization
+            .with(sdk)
             .supplyAsync(Optional.empty())
             .thenApply(
                     (ServerResponse serverResponse) -> {
@@ -623,26 +525,17 @@ class XQSDKTests {
 
   }
 
-
   @Test
-  @Order(12)
+  @Order(120)
+  @Disabled
   void testRevokeKeyAccess() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
-
-    String locatorToken = cached(email, Decrypt.LOCATOR_TOKEN, PERMANENT);
+    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
 
     assert locatorToken != null : " locatorToken is null";
 
     String noContent = RevokeKeyAccess
-            .with(sdk, accessToken)
+            .with(sdk)
             .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken)))
             .thenApply(
                     (ServerResponse serverResponse) -> {
@@ -669,24 +562,15 @@ class XQSDKTests {
 
   /**
    * Can only be tested this if <br>
-   * {@link #testDeleteAccessCredentials()} <br>
+   * {@link #testDeleteAuthorization()} )} <br>
    * is annotated with {@link Disabled}
    */
   @Test
-  @Order(13)
+  @Order(130)
   @Disabled
-  void testDeleteUser() throws Exception {
+  void testDeleteSubscriber() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-     final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
-
-    DeleteUser.with(sdk, accessToken)
+    DeleteSubscriber.with(sdk)
             .supplyAsync(Optional.empty())
             .thenAccept((serverResponse) -> {
 
@@ -713,18 +597,11 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(14)
+  @Order(140)
   @Disabled
-  void testAESFileEncryption() throws Exception{
+  void testAESFileEncryption() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
-    final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
 
     final Path sourceSpec = Paths.get(String.format("src/test/resources/%s.txt", "utf-8-sampler"));
     final Path targetSpec = Paths.get(String.format("src/test/resources/%s.txt.xqf", "utf-8-sampler"));
@@ -732,7 +609,7 @@ class XQSDKTests {
     final String recipients = email;
     final Integer expiration = 5;
 
-    Path encryptedFilePath = FileEncrypt.with(sdk, AlgorithmEnum.AES, accessToken)
+    Path encryptedFilePath = FileEncrypt.with(sdk, AlgorithmEnum.AES)
             .supplyAsync(Optional.of(Map.of(FileEncrypt.USER, user,
                     FileEncrypt.RECIPIENTS, recipients,
                     FileEncrypt.MESSAGE_EXPIRATION_HOURS, expiration,
@@ -757,49 +634,41 @@ class XQSDKTests {
 
             }).get();
 
-      assertTrue(encryptedFilePath!=null);
+    assertTrue(encryptedFilePath != null);
 
 
   }
 
   @Test
-  @Order(15)
+  @Order(150)
   @Disabled
-  void testAESFileDecryption() throws Exception{
+  void testAESFileDecryption() throws Exception {
 
-    String email = System.getProperty("xqsdk-user.email");
-    final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
     final Path originalSpec = Paths.get(String.format("src/test/resources/%s.ctrl", "utf-8-sampler"));
     final Path encryptedSpec = Paths.get(String.format("src/test/resources/%s.txt", "utf-8-sampler"));
     final Path decryptedSpec = Paths.get(String.format("src/test/resources/%s.txt.xqf", "utf-8-sampler"));
 
-    Path resultSpec = FileDecrypt.with(sdk, AlgorithmEnum.AES, accessToken)
-                                 .supplyAsync(Optional.of(Map.of(FileDecrypt.SOURCE_FILE_PATH, encryptedSpec,
-                                                                 FileDecrypt.TARGET_FILE_PATH, decryptedSpec)))
-                                .thenApply((serverResponse) -> {
-                                  switch (serverResponse.status) {
-                                    case Ok: {
-                                      var decryptFilePath = (Path) serverResponse.payload.get(ServerResponse.DATA);
-                                      logger.info("Encrypt Filepath: " + decryptFilePath);
-                                      return decryptFilePath;
-                                    }
-                                    case Error: {
-                                      logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                                      fail();
-                                      return null;
-                                    }
-                                    default:
-                                      fail();
-                                      throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-                                  }
+    Path resultSpec = FileDecrypt.with(sdk, AlgorithmEnum.AES)
+            .supplyAsync(Optional.of(Map.of(FileDecrypt.SOURCE_FILE_PATH, encryptedSpec,
+                    FileDecrypt.TARGET_FILE_PATH, decryptedSpec)))
+            .thenApply((serverResponse) -> {
+              switch (serverResponse.status) {
+                case Ok: {
+                  var decryptFilePath = (Path) serverResponse.payload.get(ServerResponse.DATA);
+                  logger.info("Encrypt Filepath: " + decryptFilePath);
+                  return decryptFilePath;
+                }
+                case Error: {
+                  logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                  fail();
+                  return null;
+                }
+                default:
+                  fail();
+                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+              }
 
-                                }).get();
+            }).get();
 
 
     String originalFileContent = Files.readString(originalSpec);
@@ -815,19 +684,11 @@ class XQSDKTests {
 
   }
 
-
   @Test
-  @Order(16)
-  void testOTPv2FileEncryption() throws Exception{
+  @Order(160)
+  void testOTPv2FileEncryption() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
-    final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
 
     final Path sourceSpec = Paths.get(String.format("src/test/resources/%s.txt", "utf-8-sampler"));
     final Path targetSpec = Paths.get(String.format("src/test/resources/%s.txt.xqf", "utf-8-sampler"));
@@ -836,7 +697,7 @@ class XQSDKTests {
     final List recipients = List.of(email);
     final Integer expiration = 5;
 
-    Path encryptedFilePath = FileEncrypt.with(sdk, AlgorithmEnum.OTPv2, accessToken)
+    Path encryptedFilePath = FileEncrypt.with(sdk, AlgorithmEnum.OTPv2)
             .supplyAsync(Optional.of(Map.of(FileEncrypt.USER, user,
                     FileEncrypt.RECIPIENTS, recipients,
                     FileEncrypt.MESSAGE_EXPIRATION_HOURS, expiration,
@@ -861,29 +722,19 @@ class XQSDKTests {
 
             }).get();
 
-    assertTrue(encryptedFilePath!=null);
-
+    assertTrue(encryptedFilePath != null);
 
   }
 
   @Test
-  @Order(17)
-  void testOTPv2FileDecryption() throws Exception{
-
-    String email = System.getProperty("xqsdk-user.email");
-    final String accessToken;
-    if ( sdk.getAccessToken(email) == null) {
-      accessToken = cached(email, "accessToken", PERMANENT);
-      sdk.addAccessToken(email, accessToken);
-    }else {
-      accessToken = sdk.getAccessToken(email);
-    }
+  @Order(170)
+  void testOTPv2FileDecryption() throws Exception {
 
     final Path originalSpec = Paths.get(String.format("src/test/resources/%s.ctrl", "utf-8-sampler"));
     final Path sourceSpec = Paths.get(String.format("src/test/resources/%s.txt.xqf", "utf-8-sampler"));
     final Path targetSpec = Paths.get(String.format("src/test/resources/%s.txt", "utf-8-sampler"));
 
-    Path resultSpec = FileDecrypt.with(sdk, AlgorithmEnum.OTPv2, accessToken)
+    Path resultSpec = FileDecrypt.with(sdk, AlgorithmEnum.OTPv2)
             .supplyAsync(Optional.of(Map.of(FileDecrypt.SOURCE_FILE_PATH, sourceSpec, FileDecrypt.TARGET_FILE_PATH, targetSpec)))
             .thenApply((serverResponse) -> {
               switch (serverResponse.status) {
@@ -913,48 +764,143 @@ class XQSDKTests {
     assertEquals(originalFileContent, decryptedFileContent);
 
     //Files.deleteIfExists(sourceSpec);
-   // Files.deleteIfExists(targetSpec);
+    // Files.deleteIfExists(targetSpec);
 
   }
 
   @Test
-  @Order(18)
-  @Disabled
-  void testQuantumKeysAreUnique() throws MalformedURLException {
+  @Order(180)
+  void testRevokeUserAccess() throws Exception {
 
-    XQSDK sdk = new XQSDK();
+    List recipients = List.of(System.getProperty("xqsdk-recipients.email"));
 
-    List<String> keys = new ArrayList<>();
+    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
 
-    Optional<String> serviceName = Optional.empty();
-    Map<String, Object> queryParams = Map.of("ks", "256");
+    assert locatorToken != null : " locatorToken is null";
 
-    IntStream.range(0, 25)
-            .forEach(count -> {
-              ServerResponse serverResponse = sdk.call(sdk.KEY_SERVER_URL, serviceName, CallMethod.Get, Optional.empty(), Optional.of(queryParams));
-              String key = (String) serverResponse.payload.get(ServerResponse.DATA);
-              keys.add(key);
-            });
+    String noContent = RevokeUserAccess
+            .with(sdk)
+            .supplyAsync(Optional.of(Map.of(
+                    RevokeUserAccess.LOCATOR_TOKEN, locatorToken,
+                    RevokeUserAccess.RECIPIENTS, recipients
+            )))
+            .thenApply(
+                    (ServerResponse serverResponse) -> {
+                      switch (serverResponse.status) {
+                        case Ok: {
+                          String data = (String) serverResponse.payload.get(ServerResponse.DATA);
+                          logger.info("Status: " + Ok.name());
+                          logger.info("Data: " + data);
+                          return data;
+                        }
+                        case Error: {
+                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                          return "";
+                        }
+                        default:
+                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                      }
+                    }
+            ).get();
 
-    assertEquals(keys.size(), keys.stream().distinct().count());
+    assertEquals("No Content", noContent);
 
   }
-
 
   @Test
-  @Order(19)
-  @Disabled
-  @DisplayName("XQSDK should load test properties specified in the config file under /test/resources")
-  void testLoadPropertiesFromFile() {
+  @Order(190)
+  void testGrantUserAccess() throws Exception {
 
-    assertEquals("a1a03794-33e0-4e01-8030-36052e1a55ed-4eb8e457-0f15-42f4-b398-4ce038687cfb", sdk.APPLICATION_KEY);
+    List recipients = List.of(System.getProperty("xqsdk-recipients.email"));
 
-    assertEquals("https://stg-subscription.xqmsg.net/v2", sdk.SUBSCRIPTION_SERVER_URL.toString());
-    assertEquals("https://stg-validation.xqmsg.net/v2", sdk.VALIDATION_SERVER_URL.toString());
-    assertEquals("https://stg-quantum.xqmsg.net", sdk.KEY_SERVER_URL.toString());
+    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
+
+    assert locatorToken != null : " locatorToken is null";
+
+    String noContent = GrantKeyAccess
+            .with(sdk)
+            .supplyAsync(Optional.of(Map.of(
+                    GrantKeyAccess.LOCATOR_TOKEN, locatorToken,
+                    GrantKeyAccess.RECIPIENTS, recipients
+            )))
+            .thenApply(
+                    (ServerResponse serverResponse) -> {
+                      switch (serverResponse.status) {
+                        case Ok: {
+                          String data = (String) serverResponse.payload.get(ServerResponse.DATA);
+                          logger.info("Status: " + Ok.name());
+                          logger.info("Data: " + data);
+                          return data;
+                        }
+                        case Error: {
+                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                          return "";
+                        }
+                        default:
+                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                      }
+                    }
+            ).get();
+
+    assertEquals("No Content", noContent);
 
   }
 
+  @Test
+  @Order(200)
+  void testAuthorizeAlias() throws Exception {
+
+    String email = System.getProperty("xqsdk-user.email");
+
+    Map<String, Object> payload =
+            Map.of(Authorize.USER, email,
+                    Authorize.FIRST_NAME, "User",
+                    Authorize.LAST_NAME, "XQMessage");
+
+    String accessToken = AuthorizeAlias
+            .with(sdk)
+            .supplyAsync(Optional.of(payload))
+            .thenApply(
+                    (ServerResponse authorizationResponse) -> {
+                      switch (authorizationResponse.status) {
+                        case Ok: {
+                          return (String) authorizationResponse.payload.get(ServerResponse.DATA);
+                        }
+                        default: {
+                          logger.warning(String.format("`testAuthorizeAlias` failed , reason: %s", authorizationResponse.moreInfo()));
+                          return null;
+                        }
+                      }
+                    }).get();
+
+    assertTrue(accessToken != null && !"".equals(accessToken.trim()));
+    assertNotEquals("", accessToken);
+
+  }
+
+  @Test
+  @Order(210)
+  void testCheckApiKey() throws Exception {
+
+    List<String> scopes = CheckApiKey.with(sdk)
+            .supplyAsync(Optional.of((Map.of(CheckApiKey.API_KEY, sdk.APPLICATION_KEY))))
+            .thenApply(
+                    (ServerResponse apiKeyCheckResponse) -> {
+                      switch (apiKeyCheckResponse.status) {
+                        case Ok: {
+                          var payload = apiKeyCheckResponse.payload;
+                          return (List<String>) payload.get(CheckApiKey.SCOPES);
+                        }
+                        default: {
+                          logger.warning(String.format("`testAuthorizeAlias` failed , reason: %s", apiKeyCheckResponse.moreInfo()));
+                          return null;
+                        }
+                      }
+                    }).get();
+
+    assertTrue(scopes != null && scopes.size() > 0);
+
+  }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //////////                             UTILITY METHODS                                  //////////
@@ -962,15 +908,6 @@ class XQSDKTests {
 
   private String getPinFromTerminalInput() {
     return readOneLineFromTerminalInput("Code", "Please enter the pin number");
-  }
-
-  private String getRecipientsFromTerminalInput() {
-    String recipients = readOneLineFromTerminalInput("Recipients", "Please enter one of more email address");
-    return Arrays.toString(recipients.trim().split("[\\s,]+")).replaceAll("[\\[\\]]", "");
-  }
-
-  private String getMessageFromTerminalInput() {
-    return readOneLineFromTerminalInput("Message", "Please enter the message you want to encrypt");
   }
 
   /**
@@ -992,82 +929,8 @@ class XQSDKTests {
 
   }
 
-
-  private static void clearCache() {
-    try {
-      Path dirPath = Paths.get(String.format("/Users/%s/Documents/%s", System.getenv().get("USER"), "xqsdk-tests"));
-      if (Files.exists(dirPath)) {
-        Files.list(dirPath).forEach(p -> {
-          try {
-            Files.delete(p);
-          } catch (IOException i) {
-          }
-        });
-        Files.delete(dirPath);
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-
-
-  /**
-   * writes conrtent to a file. utility to store user ids, access tokens or locator tokens and son on, between tests.
-   *
-   * @param email           part 1 of the cache key (file name)
-   * @param cacheKey        part2 of the cache key (file name)
-   * @param content         the data to be cached
-   * @param isSharedTempDir if set to {@link #TEMPORARY} the item will be destroyed after the test suite ran
-   *                        if set to {@link #PERMANENT} the item will remain indefinitely under
-   *                        /Users/<your-user-id>/Documents/xqsdk-tests/
-   */
-  private static void cache(String email, String cacheKey, String content, boolean isSharedTempDir) {
-    try {
-      String cacheName = String.format(".%s_%s", cacheKey, email.replaceAll("[@.]", "-"));
-      if (isSharedTempDir) {
-        Files.write(sharedTempDir.resolve(cacheName), content.getBytes(StandardCharsets.UTF_8));
-      } else {
-
-        Path dirPath = Paths.get(String.format("/Users/%s/Documents/%s", System.getenv().get("USER"), "xqsdk-tests"));
-        Path filePath = dirPath.resolve(cacheName);
-        boolean dirExists = Files.exists(dirPath);
-        if (dirExists) {
-          //file
-          Files.deleteIfExists(filePath);
-        } else {
-          Files.createDirectory(dirPath);
-        }
-        Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
-      }
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-
-
-
-  private static String cached(String email, String cacheKey, boolean isPermantent) {
-    try {
-      String cacheName = String.format(".%s_%s", cacheKey, email.replaceAll("[@.]", "-"));
-      if (isPermantent) {
-        return Files.readString(sharedTempDir.resolve(cacheName));
-      } else {
-        Path dirPath = Paths.get(String.format("/Users/%s/Documents/%s", System.getenv().get("USER"), "xqsdk-tests"));
-        Path filePath = dirPath.resolve(cacheName);
-        if (Files.exists(filePath)) {
-          return Files.readString(filePath);
-        }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-      return null;
-    }
-    return null;
-  }
-
-  private CompletableFuture<String> requestAccess(XQSDK sdk, Map<String, Object> payload) {
-    return RequestAccess
+  private CompletableFuture<String> authorize(XQSDK sdk, Map<String, Object> payload) {
+    return Authorize
             .with(sdk)
             .supplyAsync(Optional.of(payload))
             .thenCompose(
@@ -1078,7 +941,9 @@ class XQSDKTests {
                           final String pin = getPinFromTerminalInput();
                           logger.info("Temporary Token: " + tempToken);
                           assertTrue(tempToken != null && !"".equals(tempToken.trim()));
-                          return validateAccessRequest(sdk, pin, tempToken);
+                          return CodeValidator
+                                  .with(sdk)
+                                  .supplyAsync(Optional.of(Map.of(CodeValidator.PIN, pin)));
                         }
                         case Error: {
                           logger.warning(String.format("`testUserAccessRequest` failed at authorization stage, reason: %s", authorizationResponse.moreInfo()));
@@ -1089,57 +954,7 @@ class XQSDKTests {
                           throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", authorizationResponse.status));
                       }
                     }
-            ).thenCompose(
-                    (ServerResponse validatedResponse) -> {
-                      switch (validatedResponse.status) {
-                        case Ok: {
-                          String validatedTempToken = (String) validatedResponse.payload.get(ServerResponse.DATA);
-                          return exchangeForAccessToken(sdk, validatedTempToken);
-                        }
-                        case Error: {
-                          logger.warning(String.format("`testUserAccessRequest` failed at validation stage, reason: %s", validatedResponse.moreInfo()));
-                          fail();
-                          return CompletableFuture.completedFuture("");
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", validatedResponse.status));
-                      }
-                    }
-            );
-  }
-
-  private CompletableFuture<ServerResponse> validateAccessRequest(XQSDK sdk, String pin, String tempToken) {
-    return ValidateAccessRequest
-            .with(sdk, tempToken)
-            .supplyAsync(Optional.of(Map.of(ValidateAccessRequest.PIN, pin)))
-            .thenCompose(
-                    (ServerResponse pinValidationResponse) -> {
-                      switch (pinValidationResponse.status) {
-                        case Ok: {
-                          String data = (String) pinValidationResponse.payload.get(ServerResponse.DATA);
-                          logger.info("Validation Response: " + data);
-                          assertEquals("No Content", data);
-                          return CompletableFuture.completedFuture(new ServerResponse(Ok, Map.of(ServerResponse.DATA, tempToken)));
-                        }
-                        case Error: {
-                          logger.warning(String.format("`testEncryption` failed at pin validation stage, reason: %s", pinValidationResponse.moreInfo()));
-                          fail();
-                          return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.EncryptionFailed, pinValidationResponse.moreInfo()));
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", pinValidationResponse.status));
-
-                      }
-                    }
-
-            );
-  }
-
-  private CompletableFuture<String> exchangeForAccessToken(XQSDK sdk, String tempToken) {
-    return ExchangeForAccessToken
-            .with(sdk, tempToken)
-            .supplyAsync(Optional.empty())
-            .thenApply(
+            ).thenApply(
                     (ServerResponse exchangeResponse) -> {
                       switch (exchangeResponse.status) {
                         case Ok: {
@@ -1159,7 +974,6 @@ class XQSDKTests {
                       }
                     }
             );
-
   }
 
   static <T> Logger getLogger(Class<T> clazz) {
@@ -1170,6 +984,7 @@ class XQSDKTests {
     }
     return Logger.getLogger(clazz.getName());
   }
+
 }
 
 

@@ -1,8 +1,6 @@
 package com.xqmsg.sdk.v2.services;
 
 import com.xqmsg.sdk.v2.AlgorithmEnum;
-import com.xqmsg.sdk.v2.CallStatus;
-import com.xqmsg.sdk.v2.Reasons;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
@@ -22,24 +20,22 @@ public class Decrypt extends XQModule {
   public static final String LOCATOR_TOKEN = "locatorToken";
   public static final String ENCRYPTED_TEXT = "encryptedText";
 
-  private final XQSDK sdk;
-  private final String accessToken;
   private final AlgorithmEnum algorithm;
 
-  private Decrypt(XQSDK sdk, AlgorithmEnum algorithm, String accessToken) {
-    this.sdk = sdk;
+  private Decrypt(XQSDK sdk, AlgorithmEnum algorithm) {
+    assert sdk != null : "An instance of the XQSDK is required";
+    super.sdk = sdk;
+    super.cache = sdk.getCache();
     this.algorithm = algorithm;
-    this.accessToken = accessToken;
   }
 
   /**
-   * @param sdk App Settings
+   * @param sdk       App Settings
    * @param algorithm the {@link AlgorithmEnum} used to encrypt the data.
-   * @param accessToken Access Token retrieved by {@link ExchangeForAccessToken}
    * @returns this
    */
-  public static Decrypt with(XQSDK sdk, AlgorithmEnum algorithm, String accessToken) {
-    return new Decrypt(sdk, algorithm, accessToken);
+  public static Decrypt with(XQSDK sdk, AlgorithmEnum algorithm) {
+    return new Decrypt(sdk, algorithm);
   }
 
   @Override
@@ -50,43 +46,48 @@ public class Decrypt extends XQModule {
 
   /**
    * @param maybeArgs Map of request parameters supplied to this method.
-   * <pre>parameter details:<br>
-   * String locatorToken! - The locator token needed to fetch the encryption key from the server.<br>
-   * String encryptedText!  - The text to decrypt.<br>
-   * </pre>
+   *                  <pre>parameter details:<br>
+   *                  String locatorToken! - The locator token needed to fetch the encryption key from the server.<br>
+   *                  String encryptedText!  - The text to decrypt.<br>
+   *                  </pre>
    * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}>>
    * @apiNote !=required ?=optional [...]=default {...} map
    */
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-    return validateInput(maybeArgs)
-            .thenCompose((validatedArgs) -> {
-              Map<String, Object> args = validatedArgs.get();
+    return
+            validate.andThen(
+                    authorize.andThen(
+                            (authorizationToken) -> {
 
-              String locatorToken = (String) args.get(LOCATOR_TOKEN);
-              String encryptedText = (String) args.get(ENCRYPTED_TEXT);
+                              Map<String, Object> args = maybeArgs.get();
 
-              return RetrieveKey.with(sdk, accessToken)
-                      .supplyAsync(Optional.of(Map.of(RetrieveKey.LOCATOR_TOKEN, locatorToken)))
-                      .thenCompose(
-                              (ServerResponse keyRetrievalResponse) -> {
-                                switch (keyRetrievalResponse.status) {
-                                  case Ok: {
-                                    final String encryptionKey = (String) keyRetrievalResponse.payload.get(ServerResponse.DATA);
-                                    logger.info(String.format("retrieveKeyFromServer=>encryptionKey: %s", encryptionKey));
-                                    return sdk.getAlgorithm(algorithm).decrypt(encryptedText, encryptionKey);
-                                  }
-                                  case Error: {
-                                    return CompletableFuture.completedFuture(keyRetrievalResponse);
-                                  }
-                                  default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", keyRetrievalResponse.status));
+                              String locatorToken = (String) args.get(LOCATOR_TOKEN);
+                              String encryptedText = (String) args.get(ENCRYPTED_TEXT);
 
-                                }
-                              });
-            })
-            .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+                              return FetchKey.with(sdk)
+                                      .supplyAsync(Optional.of(Map.of(FetchKey.LOCATOR_TOKEN, locatorToken)))
+                                      .thenCompose(
+                                              (ServerResponse keyRetrievalResponse) -> {
+                                                switch (keyRetrievalResponse.status) {
+                                                  case Ok: {
+                                                    final String encryptionKey = (String) keyRetrievalResponse.payload.get(ServerResponse.DATA);
+                                                    logger.info(String.format("retrieveKeyFromServer=>encryptionKey: %s", encryptionKey));
+                                                    return sdk.getAlgorithm(algorithm).decrypt(encryptedText, encryptionKey);
+                                                  }
+                                                  case Error: {
+                                                    return CompletableFuture.completedFuture(keyRetrievalResponse);
+                                                  }
+                                                  default:
+                                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", keyRetrievalResponse.status));
+
+                                                }
+                                              });
+
+
+                            }))
+                    .apply(maybeArgs);
   }
 
   @Override

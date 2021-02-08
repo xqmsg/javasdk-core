@@ -13,65 +13,74 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Revokes a key using its token.
  * Only the user who sent the message will be able to revoke it.
  */
-public class RevokeKeyAccess extends XQModule {
+public class RevokeUserAccess extends XQModule {
 
-  private static final Logger logger = Logger(RevokeKeyAccess.class);
+  private static final Logger logger = Logger(RevokeUserAccess.class);
 
+
+  public static final String RECIPIENTS = "recipients";
   public static final String LOCATOR_TOKEN = "locatorToken";
 
-  private static final String SERVICE_NAME = "key";
+  private static final String SERVICE_NAME = "revoke";
 
-  private RevokeKeyAccess(XQSDK sdk) {
+  private RevokeUserAccess(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
     super.sdk = sdk;
     super.cache = sdk.getCache();
-
   }
 
   @Override
-  public List<String> requiredFields() { return List.of(LOCATOR_TOKEN); }
+  public List<String> requiredFields() {
+    return List.of(LOCATOR_TOKEN, RECIPIENTS);
+  }
 
   /**
    * @param sdk App Settings
    * @returns this
    */
-  public static RevokeKeyAccess with(XQSDK sdk) {
-    return new RevokeKeyAccess(sdk);
+  public static RevokeUserAccess with(XQSDK sdk) {
+    return new RevokeUserAccess(sdk);
   }
 
   /**
    * @param maybeArgs Map of request parameters supplied to this method.
-   * <pre>parameter details:<br>
-   * String locatorToken! - The locator token used as a URL to discover the key on the server.<br>
-   *                        The URL encoding part is handled internally in the service itself.
-   * </pre>
+   *                  <pre>parameter details:<br>
+   *                  List<String> recipients! - List of emails of users intended to have read access to the encrypted content removed.<br>
+   *                  String locatorToken! - The locator token used as a URL to discover the key on the server.<br>
+   *                                         The URL encoding part is handled internally in the service itself.
+   *                  </pre>
    * @returns CompletableFuture&lt;ServerResponse#payload:{data:{}}>
    * @apiNote !=required ?=optional [...]=default {...} map
    */
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
+
+
     return CompletableFuture.completedFuture(
             validate.andThen(
                     authorize.andThen(
                             (authorizationToken) -> {
-
                               Map<String, Object> args = maybeArgs.get();
 
                               String locatorToken = (String) args.get(LOCATOR_TOKEN);
+                              final List<String> recipients = (List<String>) args.get(RECIPIENTS);
 
                               final String DYNAMIC_SERVICE_NAME = String.format("%s/%s", SERVICE_NAME, encode(locatorToken));
 
                               return sdk.call(sdk.VALIDATION_SERVER_URL,
                                       Optional.of(DYNAMIC_SERVICE_NAME),
-                                      CallMethod.Delete,
+                                      CallMethod.Options,
                                       Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
-                                      Optional.of(Map.of()));
+                                      Optional.of(Map.of(
+                                              RECIPIENTS, recipients.stream().collect(Collectors.joining(","))
+                                      )));
                             }))
                     .apply(maybeArgs));
 

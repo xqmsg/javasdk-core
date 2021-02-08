@@ -108,7 +108,8 @@ public interface XQAlgorithm {
    * @returns Expanded Key
    */
   default String expandKey  (String k, int extendTo) {
-    String key = k.replace("\n$","");
+    //String key = k.replace("\n$","");
+    String key = k.trim();
     if (key.length() > extendTo) {
       return shuffle(key.substring(0, extendTo));
     }

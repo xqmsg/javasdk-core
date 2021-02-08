@@ -17,26 +17,24 @@ import java.util.logging.Logger;
  * This service allows a user to create a very short-lived version of their access token in order to access certain <br>
  * services such as file encryption/decryption on the XQ websie without having to transmit their main access token.
  */
-public class CreateDelegateAccessToken extends XQModule {
+public class AuthorizeDelegate extends XQModule {
 
-  public static final String SERVICE_NAME = "delegate";
   private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
-  private final XQSDK sdk;
-  private final String authorizationToken;
+  private static final String SERVICE_NAME = "delegate";
 
-  private CreateDelegateAccessToken(XQSDK aSDK, String authorizationToken) {
-    sdk = aSDK;
-    this.authorizationToken = authorizationToken;
+  private AuthorizeDelegate(XQSDK sdk) {
+    assert sdk != null : "An instance of the XQSDK is required";
+    super.sdk = sdk;
+    super.cache = sdk.getCache();
   }
 
   /**
    * @param sdk App Settings
-   * @param authorizationToken Access Token retrieved by {@link ExchangeForAccessToken}
    * @returns this
    */
-  public static CreateDelegateAccessToken with(XQSDK sdk, String authorizationToken) {
-    return new CreateDelegateAccessToken(sdk, authorizationToken);
+  public static AuthorizeDelegate with(XQSDK sdk) {
+    return new AuthorizeDelegate(sdk);
   }
 
   @Override
@@ -46,28 +44,35 @@ public class CreateDelegateAccessToken extends XQModule {
 
   /**
    * @param maybeArgs Map of request parameters supplied to this method.
-   * <pre>parameter details:none</pre>
+   *                  <pre>parameter details:none</pre>
    * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}}>>
    * @apiNote !=required ?=optional [...]=default {...} map
    */
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-    return validateInput(maybeArgs)
-            .thenApply((validatedArgs) -> {
-              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
-              return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                      Optional.of(SERVICE_NAME),
-                      CallMethod.Get,
-                      Optional.of(headerProperties),
-                      validatedArgs);
-            })
+
+    return CompletableFuture.completedFuture(
+            validate.andThen(
+                    authorize.andThen(
+                            (authorizationToken) -> {
+                              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
+                              return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                      Optional.of(SERVICE_NAME),
+                                      CallMethod.Get,
+                                      Optional.of(headerProperties),
+                                      maybeArgs);
+                            })
+            )
+                    .apply(maybeArgs))
             .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+
+
   }
 
   @Override
   public String moduleName() {
-    return "CreateDelegateAccessToken";
+    return "AuthorizeDelegate";
   }
 
 

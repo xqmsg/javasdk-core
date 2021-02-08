@@ -46,5 +46,7 @@ public enum Reasons {
 
     IOException,
 
+    Unauthorized,
+
     NoneProvided
 }

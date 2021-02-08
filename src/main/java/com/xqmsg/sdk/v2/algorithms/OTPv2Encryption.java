@@ -252,7 +252,6 @@ public class OTPv2Encryption implements XQAlgorithm {
         final int filenameSize = ByteArrayReader.with(dai).addInt(4).reverse().intValue();
         byte[] filenameBytes = ByteArrayReader.with(dai).addInt(filenameSize).getBytes();
 
-
         return retrieveKeyFunction
                 .apply(new String((locatorTokenBytes)))
                 .thenApply((k) -> {
@@ -261,7 +260,6 @@ public class OTPv2Encryption implements XQAlgorithm {
 
                   if (key == null) {
                     String message = "Unable to retrieve a valid key.";
-                    logger.warning(message);
                     return new ServerResponse(CallStatus.Error, Reasons.InvalidQuantumKey, message);
                   }
 
@@ -269,7 +267,6 @@ public class OTPv2Encryption implements XQAlgorithm {
 
                   if (keyData.length < 64) {
                     String message = "OTP Source Key must be at least 64 bytes.";
-                    logger.warning(message);
                     return new ServerResponse(CallStatus.Error, Reasons.OTPKeyLengthIncorrect, message);
                   }
                   logger.info("Filename : " + new String(filenameBytes, StandardCharsets.UTF_8));
@@ -311,7 +308,7 @@ public class OTPv2Encryption implements XQAlgorithm {
                         if (++keyIndex >= keyData.length) keyIndex = 0;
                       }
                       outstream.write(inputBuffer, 0, dataRead);
-                      logger.info("Decrypted Data: " + new String(inputBuffer, StandardCharsets.UTF_8));
+                      logger.info("Decrypted File Data: " + new String(inputBuffer, StandardCharsets.UTF_8));
                       readAmount = Math.min(instream.available(), READ_CHUNK);
                     }
                   } catch (FileNotFoundException e) {

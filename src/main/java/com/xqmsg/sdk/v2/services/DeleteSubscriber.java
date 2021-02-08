@@ -12,28 +12,30 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
+
 /**
- * Exchange the temporary access token with a real access token used in all secured XQ Message interactions
+ * Deletes the user specified by the access token.
+ * After an account is deleted, the subscriber will be sent an email notifying them of its deletion.
  */
-public class ExchangeForAccessToken extends XQModule {
+public class DeleteSubscriber extends XQModule {
 
-  private final Logger logger = Logger.getLogger(getClass().getName(), null);
+  private static final Logger logger = Logger(DeleteSubscriber.class);
 
-  private static final String SERVICE_NAME = "exchange";
+  private static final String SERVICE_NAME = "subscriber";
 
-  private ExchangeForAccessToken(XQSDK sdk) {
+  private DeleteSubscriber(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
     super.sdk = sdk;
     super.cache = sdk.getCache();
-
   }
+
 
   /**
    * @param sdk App Settings
-   * @returns ExchangeForAccessToken
+   * @returns this
    */
-  public static ExchangeForAccessToken with(XQSDK sdk) {
-    return new ExchangeForAccessToken(sdk);
+  public static DeleteSubscriber with(XQSDK sdk) {
+    return new DeleteSubscriber(sdk);
   }
 
   @Override
@@ -44,41 +46,36 @@ public class ExchangeForAccessToken extends XQModule {
   /**
    * @param maybeArgs Map of request parameters supplied to this method.
    *                  <pre>parameter details:none</pre>
-   * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}}>>
+   * @returns CompletableFuture&lt;ServerResponse#payload{data:{}}>>
    * @apiNote !=required ?=optional [...]=default {...} map
    */
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-
     return CompletableFuture.completedFuture(
             validate.andThen(
-                    preAuthorize.andThen(
-                            (temporaryAccessToken) -> {
-                              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", temporaryAccessToken));
-
-                              ServerResponse exchangeResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                    authorize.andThen(
+                            (authorizationToken) -> {
+                              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
+                              ServerResponse deleteResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
                                       Optional.of(SERVICE_NAME),
-                                      CallMethod.Get,
+                                      CallMethod.Delete,
                                       Optional.of(headerProperties),
                                       maybeArgs);
-
-                              switch (exchangeResponse.status) {
+                              switch (deleteResponse.status) {
                                 case Ok: {
-                                  String accessToken = (String) exchangeResponse.payload.get(ServerResponse.DATA);
                                   try {
                                     String activeProfile = cache.getActiveProfile(true);
-                                    cache.putXQAccess(activeProfile, accessToken);
-                                    cache.removeXQPreAuthToken(activeProfile);
+                                    cache.removeProfile(activeProfile);
                                   } catch (StatusCodeException e) {
                                     logger.severe(e.getMessage());
-                                    return null;
                                   }
                                 }
                                 default: {
-                                  return exchangeResponse;
+                                  return deleteResponse;
                                 }
                               }
+
 
                             })
             )
@@ -89,8 +86,7 @@ public class ExchangeForAccessToken extends XQModule {
 
   @Override
   public String moduleName() {
-    return "ExchangeForAccessToken";
+    return "DeleteSubscriber";
   }
-
 
 }

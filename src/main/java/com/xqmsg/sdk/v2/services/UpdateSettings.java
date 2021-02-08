@@ -1,8 +1,6 @@
 package com.xqmsg.sdk.v2.services;
 
 import com.xqmsg.sdk.v2.CallMethod;
-import com.xqmsg.sdk.v2.CallStatus;
-import com.xqmsg.sdk.v2.Reasons;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
@@ -15,20 +13,19 @@ import java.util.logging.Logger;
 
 
 
-public class UpdateUserSettings extends XQModule {
+public class UpdateSettings extends XQModule {
 
-  private static final Logger logger = Logger(UpdateUserSettings.class);
+  private static final Logger logger = Logger(UpdateSettings.class);
 
   public static final String NOTIFICATIONS="notifications";
   public static final String NEWSLETTER="newsletter";
 
-  public static final String SERVICE_NAME = "settings";
-  private final XQSDK sdk;
-  private final String authorizationToken;
+  private static final String SERVICE_NAME = "settings";
 
-  private UpdateUserSettings(XQSDK aSDK, String authorizationToken) {
-    sdk = aSDK;
-    this.authorizationToken = authorizationToken;
+  private UpdateSettings(XQSDK sdk) {
+    assert sdk != null : "An instance of the XQSDK is required";
+    super.sdk = sdk;
+    super.cache = sdk.getCache();
   }
 
   @Override
@@ -36,11 +33,10 @@ public class UpdateUserSettings extends XQModule {
 
   /**
    * @param sdk App Settings
-   * @param authorizationToken Access Token retrieved by {@link ExchangeForAccessToken}
    * @returns this
    */
-  public static UpdateUserSettings with(XQSDK sdk, String authorizationToken) {
-    return new UpdateUserSettings(sdk, authorizationToken);
+  public static UpdateSettings with(XQSDK sdk) {
+    return new UpdateSettings(sdk);
   }
 
   /**
@@ -55,24 +51,31 @@ public class UpdateUserSettings extends XQModule {
    */
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
-    return validateInput(maybeArgs)
-            .thenApply((validatedArgs)->{
-              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
-              return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                      Optional.of(SERVICE_NAME),
-                      CallMethod.Options,
-                      Optional.of(headerProperties),
-                      validatedArgs);
 
-            })
-            .exceptionally(e->new ServerResponse(CallStatus.Error, Reasons.MissingParameters,e.getMessage()));
+
+    return CompletableFuture.completedFuture(
+            validate.andThen(
+                    authorize.andThen(
+                            (authorizationToken) -> {
+                              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
+                              return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                      Optional.of(SERVICE_NAME),
+                                      CallMethod.Options,
+                                      Optional.of(headerProperties),
+                                      maybeArgs);
+                            }))
+                    .apply(maybeArgs));
+
+
+
+
 
 
   }
 
   @Override
   public String moduleName() {
-    return "GetUserInfo";
+    return "UpdateUSerSettings";
   }
 
 }
