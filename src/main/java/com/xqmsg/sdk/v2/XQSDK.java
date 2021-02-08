@@ -1,0 +1,417 @@
+package com.xqmsg.sdk.v2;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.xqmsg.sdk.v2.algorithms.AESEncryption;
+import com.xqmsg.sdk.v2.algorithms.OTPv2Encryption;
+import com.xqmsg.sdk.v2.algorithms.XQAlgorithm;
+import com.xqmsg.sdk.v2.utils.Base64Util;
+import com.xqmsg.sdk.v2.utils.XQMsgJSONTypeAdapter;
+
+import javax.net.ssl.HttpsURLConnection;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.StringReader;
+import java.lang.management.ManagementFactory;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+public class XQSDK {
+
+  public static final String API_KEY = "api-key";
+  public static final String CONTENT_TYPE = "content-type";
+  public static final String APPLICATION_JSON = "application/json";
+  public static final String TEXT_PLAIN_UTF_8 = "text/plain;charset=UTF-8";
+
+  private final Logger logger = Logger.getLogger(getClass().getName(), null);
+
+  public final URL SUBSCRIPTION_SERVER_URL;
+  public final URL VALIDATION_SERVER_URL;
+  public final URL KEY_SERVER_URL;
+
+  public final String APPLICATION_KEY;
+
+  private final HashMap<AlgorithmEnum, XQAlgorithm> ALGORITHMS;
+
+  private final Map<String, Object> prefs = new HashMap<>();
+
+  /// A store of all the currently logged in users.
+  private final HashMap<String, User> users = new HashMap<>();
+
+  private final HashMap<String, String> accessTokens = new HashMap<>();
+
+  public XQSDK() throws MalformedURLException {
+
+    Properties applicationProperties = getApplicationProperties();
+
+    SUBSCRIPTION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.subscription-server-url"));
+    VALIDATION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.validation-server-url"));
+    KEY_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.key-server-url"));
+
+    APPLICATION_KEY = applicationProperties.getProperty("com.xq-msg.sdk.v2.api-key");
+
+    ALGORITHMS = new HashMap<>();
+    ALGORITHMS.put(AlgorithmEnum.AES, new AESEncryption());
+    ALGORITHMS.put(AlgorithmEnum.OTPv2, new OTPv2Encryption());
+
+  }
+
+  public ServerResponse call(URL baseUrl, Optional<String> mayBeService, CallMethod method, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) {
+
+    assert baseUrl != null : "baseUrl cannot be null";
+    assert method != null : "method cannot be null";
+
+    if (maybePayload.isPresent() && List.of(CallMethod.Post, CallMethod.Options).contains(method)) {
+      try {
+        return makeBodyRequest(baseUrl, method.name().toUpperCase(), mayBeService, maybeHeaderProperties, maybePayload);
+      } catch (IOException e) {
+        return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+      }
+    } else {
+      try {
+        return makeParamRequest(baseUrl, method.name().toUpperCase(), mayBeService, maybeHeaderProperties, maybePayload);
+      } catch (IOException e) {
+        return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+      }
+    }
+  }
+
+
+
+  private ServerResponse makeBodyRequest(URL baseUrl, String method, Optional<String> maybeService, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) throws IOException {
+
+    final String spec = String.format("%s%s", baseUrl, maybeService.map(service -> "/" + service).orElse(""));
+    final URL url = new URL(spec);
+
+    final HttpsURLConnection httpsConnection = (HttpsURLConnection) url.openConnection();
+
+    httpsConnection.setRequestProperty(XQSDK.API_KEY, APPLICATION_KEY);
+    httpsConnection.setRequestMethod(method);
+    httpsConnection.setDoOutput(true);
+
+    try {
+
+      maybeHeaderProperties.ifPresentOrElse(
+          (headerProperties) -> {
+             headerProperties.forEach(httpsConnection::setRequestProperty);
+             if (!headerProperties.containsKey(XQSDK.CONTENT_TYPE)) {
+               httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
+             }
+         },
+         () ->{ httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);}
+      );
+
+      writeToOutputStream(maybePayload.orElseGet(Collections::emptyMap), httpsConnection);
+
+      Map<String, Object> response = receiveData(httpsConnection);
+
+      return convertToServerResponse(response);
+
+    } catch (Exception e) {
+      return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+    } finally {
+        httpsConnection.disconnect();
+    }
+  }
+
+
+  private ServerResponse makeParamRequest(URL baseUrl, String method, Optional<String> maybeService, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) throws IOException {
+
+    String spec = String.format("%s%s%s",
+            baseUrl, maybeService.map(service -> "/" + service).orElse(""),
+            maybePayload.map(payload -> "?" + buildQeryParams(payload)).orElse(""));
+
+    URL url = new URL(spec);
+
+    HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+
+    try {
+
+      connection.setRequestProperty(XQSDK.API_KEY, APPLICATION_KEY);
+      connection.setRequestMethod(method);
+
+      maybeHeaderProperties.ifPresentOrElse(
+              (headerProperties) -> {
+                headerProperties.forEach(connection::setRequestProperty);
+                if (!headerProperties.containsKey(XQSDK.CONTENT_TYPE)) {
+                  connection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
+                }
+              },
+              () ->{ connection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);}
+      );
+
+      Map<String, Object> response = receiveData(connection);
+
+      logger.info(String.format("Server Response: %s ", response));
+      return convertToServerResponse(response);
+
+
+    } catch (Exception e) {
+      return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+    } finally {
+      connection.disconnect();
+    }
+  }
+
+
+  public XQAlgorithm getAlgorithm(AlgorithmEnum algorithm) {
+    if (!ALGORITHMS.containsKey(algorithm)) return null;
+    return ALGORITHMS.get(algorithm);
+  }
+
+  /**
+   * Loads the application properties for this application as specified in a file named `config.properties`.
+   * If a `mode` vm argument was specified it will be prepended to the filename followed by a hyphen.
+   * Example: `-Dmode=dev` will cause the app to read properties from `dev-config.properties`.
+   *
+   * @return
+   */
+  private Properties getApplicationProperties() {
+
+    Properties applicationProperties = new Properties();
+
+    Properties vmArgs = new Properties();
+    ManagementFactory.getRuntimeMXBean()
+            .getInputArguments()
+            .forEach(vmArg -> {
+              if (vmArg.contains("=")) {
+                try {
+                  if (vmArg.startsWith("-D")) {
+                    vmArg = vmArg.substring(2);
+                  } else if (vmArg.startsWith("-")) {
+                    vmArg = vmArg.substring(1);
+                  }
+                  vmArgs.load(new StringReader(vmArg));
+                } catch (IOException ex) {
+                  ex.printStackTrace();
+                }
+              }
+            });
+
+    String configFilename = String.format("%sconfig.properties", vmArgs.getProperty("mode") != null ? vmArgs.getProperty("mode") + "-" : "");
+
+    try (InputStream input = XQSDK.class.getClassLoader().getResourceAsStream(configFilename)) {
+      if (input == null) {
+        throw new FileNotFoundException("Sorry, unable to find " + configFilename + " in the `resources` folder");
+      }
+      applicationProperties.load(input);
+    } catch (FileNotFoundException ex) {
+      ex.printStackTrace();
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+    return applicationProperties;
+  }
+
+  public static String shuffle(String array) {
+
+    byte[] shuffled = array.getBytes();
+
+    for (int i = 0; i < shuffled.length; i++) {
+      int r = i + (int) (Math.random() * (shuffled.length - i));
+      byte temp = shuffled[r];
+      shuffled[r] = shuffled[i];
+      shuffled[i] = temp;
+    }
+    return new String(shuffled);
+  }
+
+  private String buildQeryParams(Map<String, Object> params) {
+    return params.entrySet().stream()
+            .map(p -> p.getKey() + "=" + p.getValue())
+            .reduce((p1, p2) -> p1 + "&" + p2)
+            .orElse("");
+  }
+
+
+  public void addUser(String email, User user) {
+    this.users.put(email, user);
+  }
+
+  public void addAccessToken(String email, String accessToken) {
+    this.accessTokens.put(email, accessToken);
+  }
+
+  public void removeAccessToken(String email) {
+    this.accessTokens.remove(email);
+  }
+
+  public String getAccessToken(String email) {
+    return this.accessTokens.get(email);
+  }
+
+
+  public List<String> getUserList() {
+    return Arrays.asList(this.users.keySet().toArray(new String[0]));
+  }
+
+
+  public User getUser(String email) {
+    return this.users.get(email);
+  }
+
+  /// Checks whether the user with the provided email address is logged on or not.
+  ///
+  /// - Parameter sender: The email address to check.
+  /// - Returns: True if logged in, otherwise false.
+  public boolean isLoggedIn(String sender) {
+    return this.users != null && this.users.containsKey(sender);
+  }
+
+  /// Create an identifier from a list of provided emails.
+  ///
+  /// - Parameter emails: A list of accounts (e.g. emails) that are allowed to read this message.
+  /// - Returns: A comma-delimited string of encoded identifiers.
+  public String codedSignature(List<String> accounts) {
+    return accounts.stream()
+            .map((str) -> {
+              String b64 = Base64Util.encodeToString(str.trim().toLowerCase().getBytes());
+              return b64.substring(0, b64.length() - 1);
+            })
+            .collect(Collectors.joining(","));
+  }
+
+  /// Saves a reset request for a particular account.
+  ///
+  /// - Parameters:
+  ///   - account: The account with the reset request.
+  ///   - code: The code provided by the server associated with this request.
+  public void addResetRequest(String account, String code) {
+    prefs.put("reset." + account, code);
+  }
+
+
+  /// Checks whether a particular account has an outstanding reset request.
+  ///
+  /// - Parameter account: The account to check.
+  /// - Returns: True if that account has a pending request. Otherwise, returns false.
+  public boolean pendingResetRequest(String account) {
+    return prefs.getOrDefault("reset." + account, null) != null;
+  }
+
+  /// Retrieves the reset code for a particular account ( or null if none is found).
+  ///
+  /// - Parameter account: The account to check.
+  /// - Returns: The reset code (nil if none is found).
+  public String pendingReset(String account) {
+
+    return (String) prefs.getOrDefault("reset." + account, null);
+
+  }
+
+
+  private void writeToOutputStream(Map payload, HttpsURLConnection httpsConnection) throws IOException {
+    String dataString = null;
+    if (APPLICATION_JSON.equals(httpsConnection.getRequestProperty(XQSDK.CONTENT_TYPE))) {
+      dataString = new Gson().toJson(payload);
+    } else {
+      dataString = (String) payload.get(ServerResponse.DATA);
+    }
+    try (OutputStream os = httpsConnection.getOutputStream()) {
+      byte[] input = dataString.getBytes(StandardCharsets.UTF_8);
+      os.write(input, 0, input.length);
+    }
+  }
+
+
+  private Map<String, Object> receiveData(HttpsURLConnection httpConnection) throws IOException {
+
+    BufferedInputStream is = null;
+
+    if (httpConnection.getResponseCode() < 200 | httpConnection.getResponseCode() > 299) {
+      is = new BufferedInputStream(httpConnection.getErrorStream());
+    } else {
+      is = new BufferedInputStream(httpConnection.getInputStream());
+    }
+    List<String> prefixes = ALGORITHMS.values().stream().map(a -> a.prefix()).collect(Collectors.toList());
+    StringBuilder responseBuilder = null;
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+      responseBuilder = new StringBuilder();
+      String responseLine = null;
+      int l=0;
+      boolean appendNewLine=false;
+      while ((responseLine = br.readLine()) != null) {
+        responseBuilder.append(responseLine.trim());
+        if(l==0 && prefixes.contains(responseLine.substring(0,2))) {
+          appendNewLine=true;
+        }
+        if(appendNewLine){
+          responseBuilder.append("\n");
+        }
+        ++l;
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    String responseString = responseBuilder.toString();
+
+    if (httpConnection.getResponseCode() < 200 | httpConnection.getResponseCode() > 299) {
+      throw new IOException(responseString);
+    } else {
+            switch (responseString){
+              case "":
+                responseString = "{status:\"OK\", data:\"No Content\"}";
+                break;
+              default:{
+                if(!responseString.contains("status")){
+                  responseString= String.format("{status:\"OK\", data:\"%s\"}", responseString);
+                }
+              }
+              break;
+            }
+    }
+
+    GsonBuilder gsonBuilder = new GsonBuilder();
+
+    gsonBuilder.registerTypeAdapter(new TypeToken<Map <String, Object>>(){}.getType(),  new XQMsgJSONTypeAdapter());
+
+    Gson gson = gsonBuilder.create();
+
+    return gson.fromJson(responseString, new TypeToken<Map<String, Object>>(){}.getType() );
+
+  }
+
+  ServerResponse convertToServerResponse(Map<String, Object> response) {
+
+    try {
+      if (response == null) {
+        return new ServerResponse(CallStatus.Error, Reasons.InvalidPayload);
+      }
+      if (response.containsKey("status")) {
+
+        boolean success = response.get("status").equals("OK");
+
+        if (success) {
+          response.remove("status");
+          return new ServerResponse(CallStatus.Ok, response);
+        } else {
+          String reason = (response.containsKey("reason")) ? (String) response.get("reason") : "";
+          return new ServerResponse(CallStatus.Error, Reasons.InvalidPayload, reason);
+        }
+      } else {
+        return new ServerResponse(CallStatus.Error, Reasons.InvalidPayload, "Error: " + response);
+      }
+
+    } catch (Exception e) {
+      return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+    }
+  }
+
+}
