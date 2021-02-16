@@ -56,9 +56,9 @@ To aquire one depends on interactions with three services.
     Request an access token for a particular email address.
     If successful, the user will receive a PIN via email.
 
-| Initialization Argument Name | Type   | Value                    |      |
-| :-------------------------: | ------ | ------------------------ | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value                   |
+| :-------------------------: | ------ | ------------------------ | 
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type    | Value              | Required | Description                                                  |
@@ -80,9 +80,9 @@ To aquire one depends on interactions with three services.
     Usig the PIN that was sent to a users email validate a temporary access token and
     exchange it for a real token used in all secured XQ Message interactions.
 
-| Initialization Argument Name | Type   | Value                    |      |
-| :-------------------------: | ------ | ------------------------ | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value                   | 
+| :-------------------------: | ------ | ------------------------ |
+|         xqsdk         | XQSDK | |
 
 
 | Request Argument Name | Type | Value     | Required | Description                                                  |
@@ -104,19 +104,19 @@ _ENCRYPT TEXT_
    For encryption supply a piece of textual data  along with  the author's email, one or more emails of  intended<br>   recipients and the  intended life-span of the message.
 
 
-| Initialization Argument Name | Type          | Value          |      |
-| :--------------------------: | ------------- | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
+| Initialization Argument Name | Type          | Value          | 
+| :--------------------------: | ------------- | -------------- | 
+|         xqsdk         | XQSDK | |
+|          algorithm           | AlgorithmEnum | <optv2\|aes>   | 
 
 
 
-| Request  Argument Name | Type    | Value                  | Required | Description                                                  |      |
-| ---------------------- | ------- | ---------------------- | -------- | ------------------------------------------------------------ | ---- |
-| user                   | String  | \<user-email>          | √        | The author's email                                           |      |
-| recipients             | List    | \<recipient-emails>    | √        | A list of recipients who are allowed to access the key.      |      |
-| expires                | int     | \<expiration-duration> | √        | The number of hours that this key will remain valid for. After this time, it will no longer be accessible. |      |
-| dor                    | boolean | true\|false            | x        | Delete on Read If this is set to true a recipient will only be able to read a message once. Defaults to false. |      |
+| Request  Argument Name | Type    | Value                  | Required | Description                                                  |
+| ---------------------- | ------- | ---------------------- | -------- | ------------------------------------------------------------ | 
+| user                   | String  | \<user-email>          | √        | The author's email                                           | 
+| recipients             | List    | \<recipient-emails>    | √        | A list of recipients who are allowed to access the key.      | 
+| expires                | int     | \<expiration-duration> | √        | The number of hours that this key will remain valid for. After this time, it will no longer be accessible. |     
+| dor                    | boolean | true\|false            | x        | Delete on Read If this is set to true a recipient will only be able to read a message once. Defaults to false. |      
 
 
 | Response Name      | Type   | Value            |
@@ -133,17 +133,17 @@ _DECRYPT TEXT_
    For decryption supply a piece of textual data  along with  the locator key you received when encrypting
 
 
-| Initialization Argument Name | Type          | Value          |      |
-| :--------------------------: | ------------- | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
+| Initialization Argument Name | Type          | Value          |
+| :--------------------------: | ------------- | -------------- |
+|         xqsdk         | XQSDK | |
+|          algorithm           | AlgorithmEnum | <optv2\|aes>   |
 
 
 
-| Request  Argument Name | Type   | Value            | Required | Description                                  |      |
-| ---------------------- | ------ | ---------------- | -------- | -------------------------------------------- | ---- |
-| locatorToken           | String | <locator-token>  | √        | The locator token needed to discover the key |      |
-| encryptedText          | String | <encrypted-text> | √        | the encrypted textual data                   |      |
+| Request  Argument Name | Type   | Value            | Required | Description                                  | 
+| ---------------------- | ------ | ---------------- | -------- | -------------------------------------------- | 
+| locatorToken           | String | <locator-token>  | √        | The locator token needed to discover the key | 
+| encryptedText          | String | <encrypted-text> | √        | the encrypted textual data                   | 
 
 
 | Response Name | Type          | Value                  |
@@ -160,21 +160,21 @@ _ENCRYPT FILE_
    For file encryption supply the path to the unencrypted  source document as well as a <br>   path to the target document to contain the encrypted data,  along with the author's email, <br>   one or more emails of  intended  recipients and the life-span of the message.
 
 
-| Initialization Argument Name | Type          | Value          |      |
-| :--------------------------: | ------------- | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
+| Initialization Argument Name | Type          | Value          | 
+| :--------------------------: | ------------- | -------------- | 
+|         xqsdk         | XQSDK | |
+|          algorithm           | AlgorithmEnum | <optv2\|aes>   | 
 
 
 
-| Request  Argument Name | Type    | Value                       | Required | Description                                                  |      |
-| ---------------------- | ------- | --------------------------- | -------- | ------------------------------------------------------------ | ---- |
-| user                   | String  | \<user-email>               | √        | The author's email                                           |      |
-| sourceFilePath         | Path    | \<path-to-unencrypted-file> | √        | Path to the document, which is  supposed to be encrypted     |      |
-| targetFilePath         | Path    | \<path-to-encrypted-file>   | √        | Path to the document, which supposed to be decrypted         |      |
-| recipients             | List    | \<recipient-emails>         | √        | A list of recipients who are allowed to access the key.      |      |
-| expires                | int     | \<expiration-duration>      | √        | The number of hours that this key will remain valid for. After this time, it will no longer be accessible. |      |
-| dor                    | boolean | true\|false                 | x        | Delete on Read If this is set to true a recipient will only be able to read a message once. Defaults to false. |      |
+| Request  Argument Name | Type    | Value                       | Required | Description                                                  | 
+| ---------------------- | ------- | --------------------------- | -------- | ------------------------------------------------------------ | 
+| user                   | String  | \<user-email>               | √        | The author's email                                           | 
+| sourceFilePath         | Path    | \<path-to-unencrypted-file> | √        | Path to the document, which is  supposed to be encrypted     | 
+| targetFilePath         | Path    | \<path-to-encrypted-file>   | √        | Path to the document, which supposed to be decrypted         | 
+| recipients             | List    | \<recipient-emails>         | √        | A list of recipients who are allowed to access the key.      | 
+| expires                | int     | \<expiration-duration>      | √        | The number of hours that this key will remain valid for. After this time, it will no longer be accessible. |      
+| dor                    | boolean | true\|false                 | x        | Delete on Read If this is set to true a recipient will only be able to read a message once. Defaults to false. |      
 
 
 | Response Name | Type                           | Value |
@@ -190,17 +190,17 @@ _DECRYPT FILE_
     For file decryption supply the path to the encrypted source document as well as a <br> path to the target document to contain the decryped data.
 
 
-| Initialization Argument Name | Type          | Value          |      |
-| :--------------------------: | ------------- | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
+| Initialization Argument Name | Type          | Value          | 
+| :--------------------------: | ------------- | -------------- | 
+|         xqsdk         | XQSDK | |
+|          algorithm           | AlgorithmEnum | <optv2\|aes>   | 
 
 
 
-| Request  Argument Name | Type | Value                       | Required | Description                                              |      |
-| ---------------------- | ---- | --------------------------- | -------- | -------------------------------------------------------- | ---- |
-| sourceFilePath         | Path | \<path-to-encrypted-file>   | √        | Path to the document, which supposed to be decrypted     |      |
-| targetFilePath         | Path | \<path-to-unencrypted-file> | √        | Path to the document, which is  supposed to be encrypted |      |
+| Request  Argument Name | Type | Value                       | Required | Description                                              |
+| ---------------------- | ---- | --------------------------- | -------- | -------------------------------------------------------- |
+| sourceFilePath         | Path | \<path-to-encrypted-file>   | √        | Path to the document, which supposed to be decrypted     |
+| targetFilePath         | Path | \<path-to-unencrypted-file> | √        | Path to the document, which is  supposed to be encrypted |
 
 
 
@@ -216,9 +216,9 @@ _DECRYPT FILE_
 This service is used to check whether a particular key is expired or not without actually fetching it. 
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          | 
+| :--------------------------: | ------ | -------------- | 
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type   | Value                        | Required | Description                                                  |
@@ -238,9 +238,9 @@ This service is used to check whether a particular key is expired or not without
 This service allows a user to create a very short-lived version of their access token in order to access certain services ( such as file encryption/decryption on the XQ website) without having to transmit their main access token.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          | 
+| :--------------------------: | ------ | -------------- | 
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -260,9 +260,9 @@ This service allows a user to create a very short-lived version of their access 
 Revokes a key using its token. Only the user who sent the message will be able to revoke it.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          | 
+| :--------------------------: | ------ | -------------- | 
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -283,9 +283,9 @@ Deletes the subscribed user specified by the access token.
 After an account is deleted, the subscriber will be sent an email notifying them of its deletion.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          | 
+| :--------------------------: | ------ | -------------- | 
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -306,9 +306,9 @@ Deletes the user specified by the access token.
 After an account is deleted, the subscriber will be sent an email notifying them of its deletion.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          |
+| :--------------------------: | ------ | -------------- |
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -336,9 +336,9 @@ After an account is deleted, the subscriber will be sent an email notifying them
 Gets the notification and newsletter settings for the current user.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          |
+| :--------------------------: | ------ | -------------- |
+|         xqsdk         | XQSDK | |   
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -365,9 +365,9 @@ The merged token has three restrictions:
 3. It is only valid for a short amount of time.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          | 
+| :--------------------------: | ------ | -------------- | 
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type | Value                 | Required | Description                  |
@@ -398,9 +398,9 @@ The key will only be returned if the following hold true:
 If any of these is not true, an error will be returned instead.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          | 
+| :--------------------------: | ------ | -------------- | 
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type   | Value           | Required | Description                                                  |
@@ -420,9 +420,9 @@ Revokes a key using its token.
 Only the user who sent the message will be able to revoke it.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          |
+| :--------------------------: | ------ | -------------- |
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type   | Value           | Required | Description                                                  |
@@ -442,9 +442,9 @@ Revokes a key using its token.
 Only the user who sent the message will be able to revoke it.
 
 
-| Initialization Argument Name | Type   | Value          |      |
-| :--------------------------: | ------ | -------------- | ---- |
-|         xqsdk         | XQSDK | |      |
+| Initialization Argument Name | Type   | Value          |
+| :--------------------------: | ------ | -------------- |
+|         xqsdk         | XQSDK | |
 
 
 | Request  Argument Name | Type    | Value       | Description                                                  |
