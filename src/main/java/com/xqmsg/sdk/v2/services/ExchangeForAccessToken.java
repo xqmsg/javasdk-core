@@ -1,10 +1,10 @@
 package com.xqmsg.sdk.v2.services;
 
-import com.xqmsg.com.sdk.v2.exceptions.StatusCodeException;
 import com.xqmsg.sdk.v2.CallMethod;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
 
 import java.util.List;
 import java.util.Map;

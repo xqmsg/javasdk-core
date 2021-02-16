@@ -1,7 +1,7 @@
 package com.xqmsg.sdk.v2;
 
 
-import com.xqmsg.com.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
 import com.xqmsg.sdk.v2.services.Authorize;
 import com.xqmsg.sdk.v2.services.AuthorizeAlias;
 import com.xqmsg.sdk.v2.services.AuthorizeDelegate;
@@ -25,6 +25,7 @@ import com.xqmsg.sdk.v2.services.UpdateSettings;
 import com.xqmsg.sdk.v2.utils.DateTimeFormats;
 import org.joda.time.LocalDateTime;
 import org.joda.time.Period;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
@@ -36,7 +37,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,8 +57,6 @@ class XQSDKTests {
 
   private static final Logger logger = getLogger(XQSDKTests.class);
 
-  static Map<String, String> map = null;
-
   static XQSDK sdk;
 
   @BeforeAll
@@ -67,8 +65,17 @@ class XQSDKTests {
     if (Boolean.parseBoolean(System.getProperty("clear-cache", "true"))) {
       sdk.getCache().clearAllProfiles();
     }
-    map = new HashMap<>();
   }
+  @AfterAll
+  static void cleanup() {
+    try {
+      final Path generated = Paths.get(String.format("src/test/resources/%s.txt.xqf", "utf-8-sampler"));
+      Files.deleteIfExists(generated);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
 
 
   /**
@@ -212,20 +219,16 @@ class XQSDKTests {
 
   }
 
-  /**
-   * This test  requires user input. <br> You may have to configure IntelliJ to do so. <br>
-   * Please see {@link #readOneLineFromTerminalInput} for more information.<br>
-   */
+
   @Test
   @Order(50)
-  void testEncrypt() throws Exception {
+  void testEncryptDecryptKeyRetrievalRevokeKeyAccessGrantKeyAccessRevokeUserAccess() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
 
     List recipients = List.of(System.getProperty("xqsdk-recipients.email"));
 
-    //final String text = getMessageFromTerminalInput();
-    final String text =
+    final String originalText =
             "\n\nThe first stanza of Pushkin's Bronze Horseman (Russian):\n" +
                     "На берегу пустынных волн\n" +
                     "Стоял он, дум великих полн,\n" +
@@ -239,117 +242,70 @@ class XQSDKTests {
                     "В тумане спрятанного солнца,\n" +
                     "Кругом шумел.\n";
 
-    map.put("originalText", text);
 
-    String encryptionResult = Encrypt
+    ServerResponse encryptResponse = Encrypt
             .with(sdk, AlgorithmEnum.OTPv2)
             .supplyAsync(Optional.of(Map.of(Encrypt.USER, email,
-                    Encrypt.TEXT, text,
+                    Encrypt.TEXT, originalText,
                     Encrypt.RECIPIENTS, recipients,
-                    Encrypt.MESSAGE_EXPIRATION_HOURS, 1)))
-            .thenApply(
-                    (ServerResponse encryptResponse) -> {
+                    Encrypt.MESSAGE_EXPIRATION_HOURS, 1))).get();
 
-                      switch (encryptResponse.status) {
-                        case Ok: {
-                          String locatorToken = (String) encryptResponse.payload.get(Encrypt.LOCATOR_KEY);
-                          String encryptedText = (String) encryptResponse.payload.get(Encrypt.ENCRYPTED_TEXT);
+    String locatorToken = (String) encryptResponse.payload.get(Encrypt.LOCATOR_KEY);
+    String encryptedText = (String) encryptResponse.payload.get(Encrypt.ENCRYPTED_TEXT);
 
-                          logger.info("Locator Token: " + locatorToken);
-                          logger.info("Encrypted Text: " + encryptedText);
-
-                          map.put("locatorToken", locatorToken);
-                          map.put("encryptedText", encryptedText);
-                          return encryptedText;
-
-                        }
-                        case Error: {
-                          logger.warning(String.format("`testEncryption` failed at encryption stage, reason: %s", encryptResponse.moreInfo()));
-                          return "";
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", encryptResponse.status));
-                      }
-
-                    }
-            ).get();
-
-    assertNotEquals("", encryptionResult);
-    assertNotEquals(text, encryptionResult);
-
-  }
-
-  @Test
-  @Order(60)
-  void testDecrypt() throws Exception {
-
-    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
-    String encryptedText = map.get(Decrypt.ENCRYPTED_TEXT);
-
-    assert locatorToken != null : "locator token cannot be null";
-    assert encryptedText != null : "encrypted text cannot be null";
-
-    String decryptionResult = null;
-
-    decryptionResult = Decrypt
+    ServerResponse decryptResponse = Decrypt
             .with(sdk, AlgorithmEnum.OTPv2)
-            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText)))
-            .thenApply(
-                    (ServerResponse decryptResponse) -> {
-                      switch (decryptResponse.status) {
-                        case Ok: {
-                          return (String) decryptResponse.payload.get(ServerResponse.DATA);
-                        }
-                        case Error: {
-                          return String.format("`testDecryption` failed at decryption stage, reason: %s", decryptResponse.moreInfo());
-                        }
-                        default: {
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", decryptResponse.status));
-                        }
+            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText))).get();
 
-                      }
-                    }
-            ).get();
+    String decryptedText = (String)decryptResponse.payload.get(ServerResponse.DATA);
+    logger.info("Decrypted Text:  " + decryptedText);
 
+    assertEquals(originalText, decryptedText);
 
-    logger.info("Decrypted Text:  " + decryptionResult);
-
-    assertEquals(map.get("originalText"), decryptionResult);
-
-
-  }
-
-  @Test
-  @Order(70)
-  void testKeyRetrieval() throws Exception {
-
-
-    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
-
-    assert locatorToken != null : " locatorToken is null";
-
-    String key = FetchKey
+    ServerResponse keyRetrievalResponse = FetchKey
             .with(sdk)
             .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken)))
-            .thenApply(
-                    (ServerResponse serverResponse) -> {
-                      switch (serverResponse.status) {
-                        case Ok: {
-                          return (String) serverResponse.payload.get(ServerResponse.DATA);
-                        }
-                        case Error: {
-                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                          return "";
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-                      }
-                    }
-            ).get();
+            .get();
 
-    logger.info("Key from Server:  " + key);
+    logger.info("Key from Server:  " + keyRetrievalResponse.payload.get(ServerResponse.DATA));
 
-    assertNotEquals("", key);
+    ServerResponse keyExpirationResponse = CheckKeyExpiration
+            .with(sdk)
+            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken))).get();
+
+    Long expiresIn = (Long) keyExpirationResponse.payload.get(CheckKeyExpiration.EXPIRES_IN);
+    LocalDateTime now = new LocalDateTime();
+    LocalDateTime expiresOn = now.plus(new Period().withSeconds(expiresIn.intValue()));
+    String expiresOnString = DateTimeFormats.render(expiresOn, DateTimeFormats.ISO_8601_DATE_TIME);
+    logger.info(String.format("Key Expires On %s", expiresOnString));
+
+    ServerResponse revokeKeyAccessResponse = RevokeKeyAccess
+            .with(sdk)
+            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken)))
+            .get();
+    String noContent = (String) revokeKeyAccessResponse.payload.get(ServerResponse.DATA);
+
+    assertEquals("No Content", noContent);
+
+    ServerResponse grantKeyAccessResponse =  GrantKeyAccess
+            .with(sdk)
+            .supplyAsync(Optional.of(Map.of(
+                    GrantKeyAccess.LOCATOR_TOKEN, locatorToken,
+                    GrantKeyAccess.RECIPIENTS, recipients
+            )))
+            .get();
+
+    assertEquals("No Content", grantKeyAccessResponse.payload.get(ServerResponse.DATA));
+
+    ServerResponse revokeUserAccessResponse = RevokeUserAccess
+            .with(sdk)
+            .supplyAsync(Optional.of(Map.of(
+                    RevokeUserAccess.LOCATOR_TOKEN, locatorToken,
+                    RevokeUserAccess.RECIPIENTS, recipients
+            )))
+           .get();
+
+    assertEquals("No Content", revokeUserAccessResponse.payload.get(ServerResponse.DATA));
 
   }
 
@@ -364,11 +320,10 @@ class XQSDKTests {
    * -Dxqsdk-recipients.john.doe@example.com
    */
   @Test
-  @Order(80)
+  @Order(60)
   void testMergeTokens() throws Exception {
 
     String email1 = System.getProperty("xqsdk-user.email");
-    String accessToken1 = sdk.getCache().getXQAccess(email1, true);
 
     String email2 = null;
     String accessToken2 = null;
@@ -418,47 +373,11 @@ class XQSDKTests {
 
   }
 
-  @Test
-  @Order(90)
-  void testCheckKeyExpiration() throws Exception {
 
-    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
-
-    assert locatorToken != null : " locatorToken is null";
-
-    CheckKeyExpiration
-            .with(sdk)
-            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken)))
-            .thenAccept(
-                    (ServerResponse serverResponse) -> {
-                      switch (serverResponse.status) {
-                        case Ok: {
-                          logger.info("Status: " + Ok.name());
-                          Long expiresIn = (Long) serverResponse.payload.get(CheckKeyExpiration.EXPIRES_IN);
-                          LocalDateTime now = new LocalDateTime();
-                          LocalDateTime expiresOn = now.plus(new Period().withSeconds(expiresIn.intValue()));
-                          String expiresOnString = DateTimeFormats.render(expiresOn, DateTimeFormats.ISO_8601_DATE_TIME);
-                          logger.info(String.format("Key Expires On %s", expiresOnString));
-
-                          break;
-                        }
-                        case Error: {
-                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                          fail();
-                          break;
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-                      }
-                    }
-            ).get();
-
-
-  }
 
 
   @Test
-  @Order(100)
+  @Order(70)
   void testAuthorizeDelegate() throws Exception {
 
     String delegateAccessToken =
@@ -489,115 +408,9 @@ class XQSDKTests {
 
   }
 
-  /**
-   * Can only be tested this if <br>
-   * {@link #testDeleteSubscriber()}  <br>
-   * is annotated with {@link Disabled}
-   */
-  @Test
-  @Order(110)
-  @Disabled
-  void testDeleteAuthorization() throws Exception {
-
-    String noContent = DeleteAuthorization
-            .with(sdk)
-            .supplyAsync(Optional.empty())
-            .thenApply(
-                    (ServerResponse serverResponse) -> {
-                      switch (serverResponse.status) {
-                        case Ok: {
-                          String data = (String) serverResponse.payload.get(ServerResponse.DATA);
-                          logger.info("Status: " + Ok.name());
-                          logger.info("Data: " + data);
-                          return data;
-                        }
-                        case Error: {
-                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                          return "";
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-                      }
-                    }
-            ).get();
-
-    assertEquals("No Content", noContent);
-
-  }
 
   @Test
-  @Order(120)
-  @Disabled
-  void testRevokeKeyAccess() throws Exception {
-
-    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
-
-    assert locatorToken != null : " locatorToken is null";
-
-    String noContent = RevokeKeyAccess
-            .with(sdk)
-            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken)))
-            .thenApply(
-                    (ServerResponse serverResponse) -> {
-                      switch (serverResponse.status) {
-                        case Ok: {
-                          String data = (String) serverResponse.payload.get(ServerResponse.DATA);
-                          logger.info("Status: " + Ok.name());
-                          logger.info("Data: " + data);
-                          return data;
-                        }
-                        case Error: {
-                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                          return "";
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-                      }
-                    }
-            ).get();
-
-    assertEquals("No Content", noContent);
-
-  }
-
-  /**
-   * Can only be tested this if <br>
-   * {@link #testDeleteAuthorization()} )} <br>
-   * is annotated with {@link Disabled}
-   */
-  @Test
-  @Order(130)
-  @Disabled
-  void testDeleteSubscriber() throws Exception {
-
-    DeleteSubscriber.with(sdk)
-            .supplyAsync(Optional.empty())
-            .thenAccept((serverResponse) -> {
-
-              switch (serverResponse.status) {
-                case Ok: {
-                  String noContent = (String) serverResponse.payload.get(ServerResponse.DATA);
-                  logger.info("Status: " + Ok.name());
-                  logger.info("Data: " + noContent);
-                  break;
-                }
-                case Error: {
-                  logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                  fail();
-                  break;
-                }
-                default:
-                  fail();
-                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-              }
-
-            }).get();
-
-
-  }
-
-  @Test
-  @Order(140)
+  @Order(80)
   @Disabled
   void testAESFileEncryption() throws Exception {
 
@@ -640,7 +453,7 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(150)
+  @Order(90)
   @Disabled
   void testAESFileDecryption() throws Exception {
 
@@ -685,7 +498,7 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(160)
+  @Order(100)
   void testOTPv2FileEncryption() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
@@ -727,7 +540,7 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(170)
+  @Order(110)
   void testOTPv2FileDecryption() throws Exception {
 
     final Path originalSpec = Paths.get(String.format("src/test/resources/%s.ctrl", "utf-8-sampler"));
@@ -763,91 +576,11 @@ class XQSDKTests {
 
     assertEquals(originalFileContent, decryptedFileContent);
 
-    //Files.deleteIfExists(sourceSpec);
-    // Files.deleteIfExists(targetSpec);
-
   }
 
-  @Test
-  @Order(180)
-  void testRevokeUserAccess() throws Exception {
-
-    List recipients = List.of(System.getProperty("xqsdk-recipients.email"));
-
-    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
-
-    assert locatorToken != null : " locatorToken is null";
-
-    String noContent = RevokeUserAccess
-            .with(sdk)
-            .supplyAsync(Optional.of(Map.of(
-                    RevokeUserAccess.LOCATOR_TOKEN, locatorToken,
-                    RevokeUserAccess.RECIPIENTS, recipients
-            )))
-            .thenApply(
-                    (ServerResponse serverResponse) -> {
-                      switch (serverResponse.status) {
-                        case Ok: {
-                          String data = (String) serverResponse.payload.get(ServerResponse.DATA);
-                          logger.info("Status: " + Ok.name());
-                          logger.info("Data: " + data);
-                          return data;
-                        }
-                        case Error: {
-                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                          return "";
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-                      }
-                    }
-            ).get();
-
-    assertEquals("No Content", noContent);
-
-  }
 
   @Test
-  @Order(190)
-  void testGrantUserAccess() throws Exception {
-
-    List recipients = List.of(System.getProperty("xqsdk-recipients.email"));
-
-    String locatorToken = map.get(Decrypt.LOCATOR_TOKEN);
-
-    assert locatorToken != null : " locatorToken is null";
-
-    String noContent = GrantKeyAccess
-            .with(sdk)
-            .supplyAsync(Optional.of(Map.of(
-                    GrantKeyAccess.LOCATOR_TOKEN, locatorToken,
-                    GrantKeyAccess.RECIPIENTS, recipients
-            )))
-            .thenApply(
-                    (ServerResponse serverResponse) -> {
-                      switch (serverResponse.status) {
-                        case Ok: {
-                          String data = (String) serverResponse.payload.get(ServerResponse.DATA);
-                          logger.info("Status: " + Ok.name());
-                          logger.info("Data: " + data);
-                          return data;
-                        }
-                        case Error: {
-                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                          return "";
-                        }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
-                      }
-                    }
-            ).get();
-
-    assertEquals("No Content", noContent);
-
-  }
-
-  @Test
-  @Order(200)
+  @Order(120)
   void testAuthorizeAlias() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
@@ -879,7 +612,7 @@ class XQSDKTests {
   }
 
   @Test
-  @Order(210)
+  @Order(130)
   void testCheckApiKey() throws Exception {
 
     List<String> scopes = CheckApiKey.with(sdk)
@@ -901,6 +634,80 @@ class XQSDKTests {
     assertTrue(scopes != null && scopes.size() > 0);
 
   }
+
+
+  /**
+   * Can only be tested this if <br>
+   * {@link #testDeleteAuthorization()} )} <br>
+   * is annotated with {@link Disabled}
+   */
+  @Test
+  @Order(140)
+  @Disabled
+  void testDeleteSubscriber() throws Exception {
+
+    DeleteSubscriber.with(sdk)
+            .supplyAsync(Optional.empty())
+            .thenAccept((serverResponse) -> {
+
+              switch (serverResponse.status) {
+                case Ok: {
+                  String noContent = (String) serverResponse.payload.get(ServerResponse.DATA);
+                  logger.info("Status: " + Ok.name());
+                  logger.info("Data: " + noContent);
+                  break;
+                }
+                case Error: {
+                  logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                  fail();
+                  break;
+                }
+                default:
+                  fail();
+                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+              }
+
+            }).get();
+
+
+  }
+
+  /**
+   * Can only be tested this if <br>
+   * {@link #testDeleteSubscriber()}  <br>
+   * is annotated with {@link Disabled}
+   */
+  @Test
+  @Order(150)
+  @Disabled
+  void testDeleteAuthorization() throws Exception {
+
+    String noContent = DeleteAuthorization
+            .with(sdk)
+            .supplyAsync(Optional.empty())
+            .thenApply(
+                    (ServerResponse serverResponse) -> {
+                      switch (serverResponse.status) {
+                        case Ok: {
+                          String data = (String) serverResponse.payload.get(ServerResponse.DATA);
+                          logger.info("Status: " + Ok.name());
+                          logger.info("Data: " + data);
+                          return data;
+                        }
+                        case Error: {
+                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                          return "";
+                        }
+                        default:
+                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                      }
+                    }
+            ).get();
+
+    assertEquals("No Content", noContent);
+
+  }
+
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   //////////                             UTILITY METHODS                                  //////////

@@ -1,7 +1,7 @@
-package com.xqmsg.com.sdk.v2.caching;
+package com.xqmsg.sdk.v2.caching;
 
-import com.xqmsg.com.sdk.v2.exceptions.HttpStatusCodes;
-import com.xqmsg.com.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.exceptions.HttpStatusCodes;
+import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 

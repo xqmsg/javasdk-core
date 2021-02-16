@@ -18,10 +18,10 @@ import java.util.logging.Logger;
 
 /**
  * The key will only be returned if the following hold true:
- * The access token of the requesting user is valid and unexpired.
- * The expiration time specified for the key has not elapsed.
- * The person requesting the key was listed as a valid recipient by the sender.
- * The key is either not geofenced, or is being accessed from an authorized location.
+ *   The access token of the requesting user is valid and unexpired.
+ *   The expiration time specified for the key has not elapsed.
+ *   The person requesting the key was listed as a valid recipient by the sender.
+ *   The key is either not geo-fenced, or is being accessed from an authorized location.
  * If any of these is not true, an error will be returned instead.
  */
 public class FetchKey extends XQModule {

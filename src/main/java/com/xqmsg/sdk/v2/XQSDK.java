@@ -3,11 +3,11 @@ package com.xqmsg.sdk.v2;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.xqmsg.com.sdk.v2.caching.SimpleXQCache;
-import com.xqmsg.com.sdk.v2.caching.XQCache;
 import com.xqmsg.sdk.v2.algorithms.AESEncryption;
 import com.xqmsg.sdk.v2.algorithms.OTPv2Encryption;
 import com.xqmsg.sdk.v2.algorithms.XQAlgorithm;
+import com.xqmsg.sdk.v2.caching.SimpleXQCache;
+import com.xqmsg.sdk.v2.caching.XQCache;
 import com.xqmsg.sdk.v2.utils.XQMsgJSONTypeAdapter;
 
 import javax.net.ssl.HttpsURLConnection;

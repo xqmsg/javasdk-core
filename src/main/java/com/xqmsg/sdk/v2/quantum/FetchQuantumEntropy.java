@@ -1,4 +1,4 @@
-package com.xqmsg.com.sdk.v2.quantum;
+package com.xqmsg.sdk.v2.quantum;
 
 import com.xqmsg.sdk.v2.CallMethod;
 import com.xqmsg.sdk.v2.ServerResponse;

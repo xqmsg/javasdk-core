@@ -1,11 +1,11 @@
 package com.xqmsg.sdk.v2.services;
 
-import com.xqmsg.com.sdk.v2.quantum.FetchQuantumEntropy;
 import com.xqmsg.sdk.v2.AlgorithmEnum;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
 import com.xqmsg.sdk.v2.algorithms.XQAlgorithm;
+import com.xqmsg.sdk.v2.quantum.FetchQuantumEntropy;
 
 import java.io.IOException;
 import java.nio.file.Files;

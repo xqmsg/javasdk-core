@@ -1,12 +1,12 @@
 package com.xqmsg.sdk.v2.services;
 
-import com.xqmsg.com.sdk.v2.caching.XQCache;
 import com.xqmsg.sdk.v2.CallMethod;
 import com.xqmsg.sdk.v2.CallStatus;
 import com.xqmsg.sdk.v2.Reasons;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.caching.XQCache;
 
 import java.util.List;
 import java.util.Map;

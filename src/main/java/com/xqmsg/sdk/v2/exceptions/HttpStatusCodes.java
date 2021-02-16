@@ -1,4 +1,4 @@
-package com.xqmsg.com.sdk.v2.exceptions;
+package com.xqmsg.sdk.v2.exceptions;
 
 import java.util.HashMap;
 

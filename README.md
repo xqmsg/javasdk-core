@@ -16,7 +16,7 @@ A Java Implementation of XQ Message SDK, V.2
   [test-config.properties](./src/test/resources/test-config.properties)<br>
   _The config property is called_ `com.xq-msg.sdk.v2.api-key`
 
-## _JUnit Tests (IntelliJ set up)_ 
+## _JUnit Tests_ 
 
    ##### Debug/RunConfig:
 
@@ -35,67 +35,33 @@ A Java Implementation of XQ Message SDK, V.2
    * `-Dxqsdk-user.email=username@domain-name.com` <br>
      _validation pins will be sent to this email address_<br>
    * `-Dxqsdk-user2.email=username2@domain-name.com`<br>
-     _and additional email, needed for #8<br>
+     _and additional email, needed for tests with `recipients`<br>
      Note: to mimic pins of different accounts while using the same email account it is recommended to add +... <br>
             after the email's username part, for example: john.doe+user2@example.com_<br>
    * `-Dxqsdk-recipients.email=<recipient-email>` <br>
 
-     validation pins will all be sent to john.doe@example.com ignoring the `+user2` portion
+    validation pins will all be sent to john.doe@example.com ignoring the `+user2` portion
 
-   _Test suite the order:_
+  
+------
 
-     1.    testRequestAccess
-     2.    testGetUserInfo
-     3.    testGetUserSettings
-     4.    testUpdatetUserSettings
-     5.    testEncrypt
-     6.    testDecrypt
-     7.    testKeyRetrieval
-     8.    testMergeTokens
-     9.    testCheckKeyExpiration
-     10.   testCreateDelegateAccessToken
-     11.   testDeleteAccessCredentials
-     12.   testRevokeKeyAccess
-     13.   testDeleteUser
-     14.   testAESFileEncryption
-     15.   testAESFileDecryption
-     16.   testOTPv2FileEncryption  
-     17.   testOTPv2FileDecryption  
-     18.   testQuantumKeysAreUnique [@Disabled]                                  
-     19.   testLoadPropertiesFromFile [@Disabled]
+------
 
-Some tests require manual user input from the IntelliJ terminal window.
+------
 
-_access validation code_
-
-    1. testRequestAccess 
-    8. testMergeTokens
-
-_message to encrypt_
-
-    5. testEncrypt 
-
-   If the IntelliJ terminal window is unresponsive to user input it is likely that the `idea.vmoptions` file has<br>
-   to be modified. In IntelliJ, this can be done by selecting:<br>
-        `Help`<br>
-        `Edit Custom VM Options`<br>
-   This will open the  `idea.vmoptions` file for editing.<br>
-   Add `-Deditable.java.test.console=true`<br>
-   Click `Save` and close the file.
-        
 
 ## _Services_
 
-Pre-requisite: API Key 
-​(_see above for more API Key informaion_)
+​                                                                                             Pre-requisite: API Key 
+​                                                                            (_see above for more API Key informaion_)
 
 An Access Token is required for all secure interactions with the XQ Message services.
 To aquire one depends on interactions with three services.
 
-   #####  GetAccess Token:  [RequestAccess](./src/main/java/com/xqmsg/sdk/v2/services/RequestAccess.java) 1/3
+   #####  GetAccess Token:  [Authorize](./src/main/java/com/xqmsg/sdk/v2/services/Authorize.java) 1/2
 
-Request an access token for a particular email address.
-If successful, the user will receive a PIN via email.
+    Request an access token for a particular email address.
+    If successful, the user will receive a PIN via email.
 
 | Request  Argument Name | Type    | Value              | Required | Description                                                  |
 | ---------------------- | ------- | ------------------ | -------- | ------------------------------------------------------------ |
@@ -111,12 +77,12 @@ If successful, the user will receive a PIN via email.
 |     data      | String   | <temporary-access-token>       |
 
 
-   #####   GetAccess Token:   [ValidateAccessRequest](./src/main/java/com/xqmsg/sdk/v2/services/ValidateAccessRequest.java) 2/3
+   #####   GetAccess Token:   [CodeValidator](./src/main/java/com/xqmsg/sdk/v2/services/CodeValidator.java) 2/3
 
-Authenticate the PIN that was sent to a users email and return a validated temporary access token.
+    Usig the PIN that was sent to a users email validate a temporary access token and
+    exchange it for a real token used in all secured XQ Message interactions.
 
-
-| Initialization Argumen Name | Type   | Value                    |      |
+| Initialization Argument Name | Type   | Value                    |      |
 | :-------------------------: | ------ | ------------------------ | ---- |
 |         accessToken         | String | <temporary-access-token> |      |
 
@@ -130,31 +96,20 @@ Authenticate the PIN that was sent to a users email and return a validated tempo
 | ------------- | ---- | ----- |
 | -             | -    | -     |
 
-   #####  GetAccess Token:  [ExchangeForAccessToken](./src/main/java/com/xqmsg/sdk/v2/services/ExchangeForAccessToken.java)  3/3 
-
-Exchange the temporary access token with a real access token used in all secured XQ Message interactions
 
 
-| Initialization Argument Name | Type   | Value                    |      |
-| :--------------------------: | ------ | ------------------------ | ---- |
-|         accessToken          | String | <temporary-access-token> |      |
+------
 
-| Request Argument Name | Type | Value | Required | Description |
-| --------------------- | ---- | ----- | -------- | ----------- |
-| -                     | -    | -     | -        | -           |
+------
 
-| Response Name | Type   | Value          |
-| ------------- | ------ | -------------- |
-| data          | String | <access-token> |
-
-
+------
 
 
 _ENCRYPT TEXT_
 
    #####  [Encrypt](./src/main/java/com/xqmsg/sdk/v2/services/Encrypt.java)
 
- For encryption supply a piece of textual data  along with  the author's email, one or more emails of  intended recipients and the intended life-span of the message.
+   For encryption supply a piece of textual data  along with  the author's email, one or more emails of  intended<br>   recipients and the  intended life-span of the message.
 
 
 | Initialization Argument Name | Type          | Value          |      |
@@ -177,13 +132,17 @@ _ENCRYPT TEXT_
 | data/ locatorKey   | String | <locator-key>    |
 | data/encryptedText | String | <encrypted-text> |
 
+------
 
+------
+
+------
 
 _DECRYPT TEXT_
 
    #####  [Decrypt](./src/main/java/com/xqmsg/sdk/v2/services/Decrypt.java)
 
-For decryption supply a piece of textual data  along with  the locator key you received when encrypting
+   For decryption supply a piece of textual data  along with  the locator key you received when encrypting
 
 
 | Initialization Argument Name | Type          | Value          |      |
@@ -204,12 +163,19 @@ For decryption supply a piece of textual data  along with  the locator key you r
 | data          | DecryptResult | <decrypted-data-bytes> |
 
 
+------
+
+------
+
+------
+
+
 
 _ENCRYPT FILE_
 
    #####  [FileEncrypt](./src/main/java/com/xqmsg/sdk/v2/services/FileEncrypt.java)
 
-For file encryption supply the path to the unencrypted  source document as well as a path to the target document to contain the encrypted data,  along with the author's email, one or more emails of  intended  recipients and the life-span of the message.
+   For file encryption supply the path to the unencrypted  source document as well as a <br>   path to the target document to contain the encrypted data,  along with the author's email, <br>   one or more emails of  intended  recipients and the life-span of the message.
 
 
 | Initialization Argument Name | Type          | Value          |      |
@@ -233,13 +199,17 @@ For file encryption supply the path to the unencrypted  source document as well 
 | ------------- | ------------------------------ | ----- |
 | data          | Path  <path-to-encrypted-file> |       |
 
+------
 
+------
+
+------
 
 _DECRYPT FILE_
 
    #####  [FileDecrypt](./src/main/java/com/xqmsg/sdk/v2/services/FileDecrypt.java)
 
-For file decryption supply the path to the encrypted source document as well as a path to the target document to contain the decryped data.
+    For file decryption supply the path to the encrypted source document as well as a <br> path to the target document to contain the decryped data.
 
 
 | Initialization Argument Name | Type          | Value          |      |
@@ -261,6 +231,13 @@ For file decryption supply the path to the encrypted source document as well as 
 | data          | Path | <path-to-decrypted-file> |
 
 
+------
+
+------
+
+------
+
+
 
    #####  [CheckKeyExpiration](./src/main/java/com/xqmsg/sdk/v2/services/CheckKeyExpiration.java)
 
@@ -274,16 +251,23 @@ This service is used to check whether a particular key is expired or not without
 
 | Request  Argument Name | Type   | Value                        | Required | Description                                                  |
 | ---------------------- | ------ | ---------------------------- | -------- | ------------------------------------------------------------ |
-| locatorToken           | String | \<url-encoded-locator token> | √        | A URL encoded version of the key locator token. It is  is needed for key discovery. |
+| locatorToken           | String | \<url-encoded-locator token> | √        | A URL encoded version of the key locator token.<br>It is  is needed for key discovery. |
 
 
 | Response  Name | Response  Type | Response  Value | Description                                                  |
 | -------------- | -------------- | --------------- | ------------------------------------------------------------ |
-| expiresOn      | long           | \>=0            | The number of seconds before this token expires. If the token is already expired, this will be zero |
+| expiresOn      | long           | \>=0            | The number of seconds before this token expires.<br>(should really be `expiresIn`)<br> If the token is already expired, this will be zero |
+
+
+------
+
+------
+
+------
 
 
 
-   #####  [CreateDelegateAccessToken](./src/main/java/com/xqmsg/sdk/v2/services/CreateDelegateAccessToken.java)
+   #####  [AuthorizeDelegate](./src/main/java/com/xqmsg/sdk/v2/services/AuthorizeDelegate.java)
 
 This service allows a user to create a very short-lived version of their access token in order to access certain services ( such as file encryption/decryption on the XQ website) without having to transmit their main access token.
 
@@ -303,8 +287,15 @@ This service allows a user to create a very short-lived version of their access 
 | data           | String         | <delegate-access-token> |             |
 
 
+------
 
-   #####  [DeleteAccessCredentials](./src/main/java/com/xqmsg/sdk/v2/services/DeleteAccessCredentials.java)
+------
+
+------
+
+
+
+   #####  [RevokeKeyAccess](./src/main/java/com/xqmsg/sdk/v2/services/RevokeKeyAccess.java)
 
 Revokes a key using its token. Only the user who sent the message will be able to revoke it.
 
@@ -324,10 +315,17 @@ Revokes a key using its token. Only the user who sent the message will be able t
 | -              | -              | -               | -           |
 
 
+------
 
-   #####  [DeleteUser](./src/main/java/com/xqmsg/sdk/v2/services/DeleteUser.java)
+------
 
-Deletes the user specified by the access token.
+------
+
+
+
+   #####  [DeleteSubscriber](./src/main/java/com/xqmsg/sdk/v2/services/DeleteSubscriber.java)
+
+Deletes the subscribed user specified by the access token.
 After an account is deleted, the subscriber will be sent an email notifying them of its deletion.
 
 
@@ -344,6 +342,13 @@ After an account is deleted, the subscriber will be sent an email notifying them
 | Response  Name | Response  Type | Response  Value | Description |
 | -------------- | -------------- | --------------- | ----------- |
 | -              | -              | -               | -           |
+
+
+------
+
+------
+
+------
 
 
 
@@ -375,7 +380,16 @@ After an account is deleted, the subscriber will be sent an email notifying them
 
 
 
-   #####  [GetUserSettings](./src/main/java/com/xqmsg/sdk/v2/services/GetUserSettings.java)
+
+------
+
+------
+
+------
+
+
+
+   #####  [GetSettings](./src/main/java/com/xqmsg/sdk/v2/services/GetSettings.java)
 
 Gets the notification and newsletter settings for the current user.
 
@@ -396,7 +410,15 @@ Gets the notification and newsletter settings for the current user.
 
 
 
-   #####  [MergeTokens](./src/main/java/com/xqmsg/sdk/v2/services/MergeTokens.java)
+------
+
+------
+
+------
+
+
+
+   #####  [CombineAuthorizations](./src/main/java/com/xqmsg/sdk/v2/services/CombineAuthorizations.java)
 
 This endpoint is useful for merging two or more valid access tokens ( along with the access token used to make the call ) into a single one that can be used for temporary read access.
 
@@ -425,7 +447,16 @@ The merged token has three restrictions:
 
 
 
-   #####  [RetrieveKey](./src/main/java/com/xqmsg/sdk/v2/services/RetrieveKey.java)
+
+------
+
+------
+
+------
+
+
+
+   #####  [FetchKey](./src/main/java/com/xqmsg/sdk/v2/services/FetchKey.java)
 
 This endpoint fetches the encryption key associated with the token provided.
 The key will only be returned if the following hold true:
@@ -454,6 +485,12 @@ If any of these is not true, an error will be returned instead.
 | -------------- | ------ | ----- | ------------------------------------------- |
 | data           | String | <key> | The Encryption Key obtained from the server |
 
+------
+
+------
+
+------
+
 
 
    #####  [RevokeKeyAccess](./src/main/java/com/xqmsg/sdk/v2/services/RevokeKeyAccess.java)
@@ -476,9 +513,15 @@ Only the user who sent the message will be able to revoke it.
 | -------------- | ---- | ----- | ----------- |
 | -              | -    | -     | -           |
 
+------
+
+------
+
+------
 
 
-   #####  [UpdateUserSettings](./src/main/java/com/xqmsg/sdk/v2/services/UpdateUserSettings.java)
+
+   #####  [UpdateSettings](./src/main/java/com/xqmsg/sdk/v2/services/UpdateSettings.java)
 
 Revokes a key using its token. 
 
@@ -498,4 +541,17 @@ Only the user who sent the message will be able to revoke it.
 | Response  Name | Type | Value | Description |
 | -------------- | ---- | ----- | ----------- |
 | -              | -    | -     | -           |
+
+------
+
+------
+
+------
+
+  
+  ## _Cache_
+  
+  A basic disk backed cache implementation utilizing <a href="https://mapdb.org/">MapDB</a> which is used to store access tokens by email address
+  
+#####  [SimpleXQCache](./src/main/java/com/xqmsg/sdk/v2/caching/SimpleXQCache.java) 
 

@@ -1,6 +1,6 @@
-package com.xqmsg.com.sdk.v2.caching;
+package com.xqmsg.sdk.v2.caching;
 
-import com.xqmsg.com.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
 
 import java.util.List;
 

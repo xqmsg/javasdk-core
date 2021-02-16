@@ -1,9 +1,9 @@
 package com.xqmsg.sdk.v2;
 
 
-import com.xqmsg.com.sdk.v2.caching.XQCache;
-import com.xqmsg.com.sdk.v2.exceptions.HttpStatusCodes;
-import com.xqmsg.com.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.caching.XQCache;
+import com.xqmsg.sdk.v2.exceptions.HttpStatusCodes;
+import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
 
 import java.io.IOException;
 import java.util.HashSet;
