@@ -16,7 +16,8 @@ import java.util.logging.Logger;
 
 /**
  * Authenticate the PIN which resulted from the preceding {@link Authorize} service call.<br>
- * If successful this service returns a  status of 204, No Content .
+ * If successful this service returns a server response containing the access token.
+ *
  */
 public class CodeValidator extends XQModule {
 
