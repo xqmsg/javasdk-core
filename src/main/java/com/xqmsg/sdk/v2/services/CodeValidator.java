@@ -51,7 +51,7 @@ public class CodeValidator extends XQModule {
    *                  <pre>parameter details:<br>
    *                                                    String pin! - Pin to validate the access request.<br>
    *                                                    </pre>
-   * @returns CompletableFuture&lt;ServerResponse#payload:{data:{}}>
+   * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}}>>
    * @apiNote !=required ?=optional [...]=default {...} map
    */
   @Override

@@ -92,7 +92,7 @@ To aquire one depends on interactions with three services.
 
 | Response Name | Type | Value |
 | ------------- | ---- | ----- |
-| -             | -    | -     |
+| data             | String    | -     |
 
 
 
