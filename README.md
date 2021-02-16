@@ -75,7 +75,7 @@ To aquire one depends on interactions with three services.
 |     data      | String   | <temporary-access-token>       |
 
 
-   #####   GetAccess Token:   [CodeValidator](./src/main/java/com/xqmsg/sdk/v2/services/CodeValidator.java) 2/3
+   #####   GetAccess Token:   [CodeValidator](./src/main/java/com/xqmsg/sdk/v2/services/CodeValidator.java) 2/2
 
     Usig the PIN that was sent to a users email validate a temporary access token and
     exchange it for a real token used in all secured XQ Message interactions.
