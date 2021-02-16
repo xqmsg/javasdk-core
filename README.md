@@ -2,7 +2,7 @@
 
 
 
-## XQ-Java-SDK
+## javasdk-core
 
 A Java Implementation of XQ Message SDK, V.2
 
@@ -63,6 +63,11 @@ To aquire one depends on interactions with three services.
     Request an access token for a particular email address.
     If successful, the user will receive a PIN via email.
 
+| Initialization Argument Name | Type   | Value                    |      |
+| :-------------------------: | ------ | ------------------------ | ---- |
+|         xqsdk         | XQSDK | |      |
+
+
 | Request  Argument Name | Type    | Value              | Required | Description                                                  |
 | ---------------------- | ------- | ------------------ | -------- | ------------------------------------------------------------ |
 | user                   | String  | \<user-email>      | √        | email to be validated                                        |
@@ -84,7 +89,7 @@ To aquire one depends on interactions with three services.
 
 | Initialization Argument Name | Type   | Value                    |      |
 | :-------------------------: | ------ | ------------------------ | ---- |
-|         accessToken         | String | <temporary-access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request Argument Name | Type | Value     | Required | Description                                                  |
@@ -114,7 +119,7 @@ _ENCRYPT TEXT_
 
 | Initialization Argument Name | Type          | Value          |      |
 | :--------------------------: | ------------- | -------------- | ---- |
-|         accessToken          | String        | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 |          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
 
 
@@ -147,7 +152,7 @@ _DECRYPT TEXT_
 
 | Initialization Argument Name | Type          | Value          |      |
 | :--------------------------: | ------------- | -------------- | ---- |
-|         accessToken          | String        | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 |          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
 
 
@@ -180,7 +185,7 @@ _ENCRYPT FILE_
 
 | Initialization Argument Name | Type          | Value          |      |
 | :--------------------------: | ------------- | -------------- | ---- |
-|         accessToken          | String        | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 |          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
 
 
@@ -214,7 +219,7 @@ _DECRYPT FILE_
 
 | Initialization Argument Name | Type          | Value          |      |
 | :--------------------------: | ------------- | -------------- | ---- |
-|         accessToken          | String        | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 |          algorithm           | AlgorithmEnum | <optv2\|aes>   |      |
 
 
@@ -246,7 +251,7 @@ This service is used to check whether a particular key is expired or not without
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type   | Value                        | Required | Description                                                  |
@@ -274,7 +279,7 @@ This service allows a user to create a very short-lived version of their access 
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -302,7 +307,7 @@ Revokes a key using its token. Only the user who sent the message will be able t
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -331,7 +336,7 @@ After an account is deleted, the subscriber will be sent an email notifying them
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -360,7 +365,7 @@ After an account is deleted, the subscriber will be sent an email notifying them
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -396,7 +401,7 @@ Gets the notification and newsletter settings for the current user.
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type | Value | Required | Description |
@@ -433,7 +438,7 @@ The merged token has three restrictions:
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type | Value                 | Required | Description                  |
@@ -474,7 +479,7 @@ If any of these is not true, an error will be returned instead.
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type   | Value           | Required | Description                                                  |
@@ -502,7 +507,7 @@ Only the user who sent the message will be able to revoke it.
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type   | Value           | Required | Description                                                  |
@@ -530,7 +535,7 @@ Only the user who sent the message will be able to revoke it.
 
 | Initialization Argument Name | Type   | Value          |      |
 | :--------------------------: | ------ | -------------- | ---- |
-|         accessToken          | String | <access-token> |      |
+|         xqsdk         | XQSDK | |      |
 
 
 | Request  Argument Name | Type    | Value       | Description                                                  |
