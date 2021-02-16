@@ -42,14 +42,7 @@ A Java Implementation of XQ Message SDK, V.2
 
     validation pins will all be sent to john.doe@example.com ignoring the `+user2` portion
 
-  
 ------
-
-------
-
-------
-
-
 ## _Services_
 
 ​                                                                                             Pre-requisite: API Key 
@@ -104,12 +97,6 @@ To aquire one depends on interactions with three services.
 
 
 ------
-
-------
-
-------
-
-
 _ENCRYPT TEXT_
 
    #####  [Encrypt](./src/main/java/com/xqmsg/sdk/v2/services/Encrypt.java)
@@ -139,10 +126,6 @@ _ENCRYPT TEXT_
 
 ------
 
-------
-
-------
-
 _DECRYPT TEXT_
 
    #####  [Decrypt](./src/main/java/com/xqmsg/sdk/v2/services/Decrypt.java)
@@ -169,12 +152,6 @@ _DECRYPT TEXT_
 
 
 ------
-
-------
-
-------
-
-
 
 _ENCRYPT FILE_
 
@@ -206,10 +183,6 @@ _ENCRYPT FILE_
 
 ------
 
-------
-
-------
-
 _DECRYPT FILE_
 
    #####  [FileDecrypt](./src/main/java/com/xqmsg/sdk/v2/services/FileDecrypt.java)
@@ -238,12 +211,6 @@ _DECRYPT FILE_
 
 ------
 
-------
-
-------
-
-
-
    #####  [CheckKeyExpiration](./src/main/java/com/xqmsg/sdk/v2/services/CheckKeyExpiration.java)
 
 This service is used to check whether a particular key is expired or not without actually fetching it. 
@@ -265,12 +232,6 @@ This service is used to check whether a particular key is expired or not without
 
 
 ------
-
-------
-
-------
-
-
 
    #####  [AuthorizeDelegate](./src/main/java/com/xqmsg/sdk/v2/services/AuthorizeDelegate.java)
 
@@ -294,12 +255,6 @@ This service allows a user to create a very short-lived version of their access 
 
 ------
 
-------
-
-------
-
-
-
    #####  [RevokeKeyAccess](./src/main/java/com/xqmsg/sdk/v2/services/RevokeKeyAccess.java)
 
 Revokes a key using its token. Only the user who sent the message will be able to revoke it.
@@ -321,12 +276,6 @@ Revokes a key using its token. Only the user who sent the message will be able t
 
 
 ------
-
-------
-
-------
-
-
 
    #####  [DeleteSubscriber](./src/main/java/com/xqmsg/sdk/v2/services/DeleteSubscriber.java)
 
@@ -350,12 +299,6 @@ After an account is deleted, the subscriber will be sent an email notifying them
 
 
 ------
-
-------
-
-------
-
-
 
    #####  [GetUserInfo](./src/main/java/com/xqmsg/sdk/v2/services/GetUserInfo.java)
 
@@ -388,12 +331,6 @@ After an account is deleted, the subscriber will be sent an email notifying them
 
 ------
 
-------
-
-------
-
-
-
    #####  [GetSettings](./src/main/java/com/xqmsg/sdk/v2/services/GetSettings.java)
 
 Gets the notification and newsletter settings for the current user.
@@ -413,15 +350,7 @@ Gets the notification and newsletter settings for the current user.
 | newsLetter     | boolean | true\|false | Should this user receive newsletters or not? <br>This is only valid for new users, and is ignored if the user already exists. |
 | notifications  | Long    | [ 0 .. 3 ]  | Specifies the notifications that the user should receive  <br> 0 = No Notifications, <br> 1 = Receive Usage Reports, <br> 2 = Receive Tutorials, <br> 3 = Receive Both |
 
-
-
 ------
-
-------
-
-------
-
-
 
    #####  [CombineAuthorizations](./src/main/java/com/xqmsg/sdk/v2/services/CombineAuthorizations.java)
 
@@ -451,15 +380,7 @@ The merged token has three restrictions:
 | merged         | Long   | [ 0 -9 ]+      | The number of tokens that were successfully merged into the token. |
 
 
-
-
 ------
-
-------
-
-------
-
-
 
    #####  [FetchKey](./src/main/java/com/xqmsg/sdk/v2/services/FetchKey.java)
 
@@ -492,12 +413,6 @@ If any of these is not true, an error will be returned instead.
 
 ------
 
-------
-
-------
-
-
-
    #####  [RevokeKeyAccess](./src/main/java/com/xqmsg/sdk/v2/services/RevokeKeyAccess.java)
 
 Revokes a key using its token. 
@@ -519,12 +434,6 @@ Only the user who sent the message will be able to revoke it.
 | -              | -    | -     | -           |
 
 ------
-
-------
-
-------
-
-
 
    #####  [UpdateSettings](./src/main/java/com/xqmsg/sdk/v2/services/UpdateSettings.java)
 
@@ -549,14 +458,9 @@ Only the user who sent the message will be able to revoke it.
 
 ------
 
-------
-
-------
-
   
   ## _Cache_
   
   A basic disk backed cache implementation utilizing <a href="https://mapdb.org/">MapDB</a> which is used to store access tokens by email address
   
 #####  [SimpleXQCache](./src/main/java/com/xqmsg/sdk/v2/caching/SimpleXQCache.java) 
-
