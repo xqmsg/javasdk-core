@@ -28,3 +28,6 @@ target
 xq-msg-sdk.iml
 .idea/*
 /xq-java-sdk.iml
+/src/main/resources/SimpleXQCache.db
+/src/test/resources/utf-8-sampler.txt.xqf
+/src/test/resources/local-config.properties
