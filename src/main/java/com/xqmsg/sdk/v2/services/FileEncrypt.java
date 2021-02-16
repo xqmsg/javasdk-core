@@ -109,11 +109,10 @@ public class FileEncrypt extends XQModule {
                                                             return algorithm
                                                                     .encrypt(sourceFilePath, targetFilePath, expandedKey, locatorToken);
                                                           }
-                                                          case Error: {
+                                                          default: {
                                                             return CompletableFuture.completedFuture(uploadResponse);
                                                           }
-                                                          default:
-                                                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", uploadResponse.status));
+
                                                         }
                                                       });
                                             } catch (IOException e) {

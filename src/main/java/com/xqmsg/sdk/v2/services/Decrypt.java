@@ -76,11 +76,9 @@ public class Decrypt extends XQModule {
                                                     logger.info(String.format("retrieveKeyFromServer=>encryptionKey: %s", encryptionKey));
                                                     return sdk.getAlgorithm(algorithm).decrypt(encryptedText, encryptionKey);
                                                   }
-                                                  case Error: {
+                                                  default: {
                                                     return CompletableFuture.completedFuture(keyRetrievalResponse);
                                                   }
-                                                  default:
-                                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", keyRetrievalResponse.status));
 
                                                 }
                                               });

@@ -114,6 +114,8 @@ public class AESEncryption implements XQAlgorithm {
       return cipher.doFinal(ciphertextBytes);
 
     } catch (Exception e) {
+      String errorMessage = e.getMessage();
+      logger.warning(errorMessage);
       e.printStackTrace();
     }
     return null;
@@ -154,6 +156,8 @@ public class AESEncryption implements XQAlgorithm {
       // return Base64.getEncoder().encode(payload);
       return Base64.getMimeEncoder(text.length(), ByteBuffer.allocate(4).putInt(NO_WRAP).array()).encode(payload);
     } catch (Exception e) {
+      String errorMessage = e.getMessage();
+      logger.warning(errorMessage);
       e.printStackTrace();
     }
     return null;
@@ -226,8 +230,9 @@ public class AESEncryption implements XQAlgorithm {
         }
 
       } catch (Exception e) {
-        e.printStackTrace();
-        return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, e.getMessage());
+        String errorMessage = e.getMessage();
+        logger.warning(errorMessage);
+        return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, errorMessage);
       }
 
     });
@@ -286,24 +291,25 @@ public class AESEncryption implements XQAlgorithm {
                         return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, message);
                       }
                     } catch (Exception e) {
-                      return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, e.getMessage());
-
+                      String errorMessage = e.getMessage();
+                      logger.warning(errorMessage);
+                      return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, errorMessage);
                     }
 
 
                   }).get();
 
         } catch (Exception e) {
-          String message = e.getMessage();
-          logger.warning(message);
-          return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, message);
+          String errorMessage = e.getMessage();
+          logger.warning(errorMessage);
+          return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, errorMessage);
         }
 
 
       } catch (Exception e) {
-        String message = e.getMessage();
-        logger.warning(message);
-        return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, message);
+        String errorMessage = e.getMessage();
+        logger.warning(errorMessage);
+        return new ServerResponse(CallStatus.Error, Reasons.OutputFileCreationFailed, errorMessage);
 
       }
 

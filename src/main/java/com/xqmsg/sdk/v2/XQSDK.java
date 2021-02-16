@@ -137,7 +137,9 @@ public class XQSDK {
       return convertToServerResponse(response);
 
     } catch (Exception e) {
-      return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+      String errorMessage = e.getMessage();
+      logger.warning(errorMessage);
+      return new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage);
     } finally {
       httpsConnection.disconnect();
     }
@@ -178,7 +180,9 @@ public class XQSDK {
 
 
     } catch (Exception e) {
-      return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+      String errorMessage = e.getMessage();
+      logger.warning(errorMessage);
+      return new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage);
     } finally {
       connection.disconnect();
     }
@@ -349,7 +353,9 @@ public class XQSDK {
       }
 
     } catch (Exception e) {
-      return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+      String errorMessage = e.getMessage();
+      logger.warning(errorMessage);
+      return new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage);
     }
   }
 

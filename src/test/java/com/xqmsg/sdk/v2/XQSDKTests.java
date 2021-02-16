@@ -146,8 +146,6 @@ class XQSDKTests {
                   fail();
                   break;
                 }
-                default:
-                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
               }
 
             }).get();
@@ -209,9 +207,7 @@ class XQSDKTests {
                   fail();
                   break;
                 }
-                default:
-                  fail();
-                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+
               }
 
             }).get();
@@ -393,13 +389,11 @@ class XQSDKTests {
                                   logger.info("Delegate Access Token: " + token);
                                   return token;
                                 }
-                                case Error: {
+                                default: {
                                   logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
                                   fail();
                                   return null;
                                 }
-                                default:
-                                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
                               }
                             }
                     ).get();
@@ -471,14 +465,11 @@ class XQSDKTests {
                   logger.info("Encrypt Filepath: " + decryptFilePath);
                   return decryptFilePath;
                 }
-                case Error: {
+                default: {
                   logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
                   fail();
                   return null;
                 }
-                default:
-                  fail();
-                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
               }
 
             }).get();
@@ -556,14 +547,11 @@ class XQSDKTests {
                   logger.info("Decrypt Filepath: " + decryptFilePath);
                   return decryptFilePath;
                 }
-                case Error: {
+                default: {
                   logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
                   fail();
                   return null;
                 }
-                default:
-                  fail();
-                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
               }
 
             }).get();
@@ -694,12 +682,11 @@ class XQSDKTests {
                           logger.info("Data: " + data);
                           return data;
                         }
-                        case Error: {
+                        default: {
                           logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
                           return "";
                         }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+
                       }
                     }
             ).get();
@@ -770,13 +757,11 @@ class XQSDKTests {
                           assertTrue(accessToken != null && !"".equals(accessToken.trim()));
                           return accessToken;
                         }
-                        case Error: {
+                        default: {
                           logger.warning(String.format("`testEncryption` failed at access code exchange stage, reason: %s", exchangeResponse.moreInfo()));
                           fail();
                           return null;
                         }
-                        default:
-                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", exchangeResponse.status));
 
                       }
                     }

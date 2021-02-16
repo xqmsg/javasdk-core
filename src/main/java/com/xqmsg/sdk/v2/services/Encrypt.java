@@ -2,6 +2,7 @@ package com.xqmsg.sdk.v2.services;
 
 import com.xqmsg.sdk.v2.AlgorithmEnum;
 import com.xqmsg.sdk.v2.CallStatus;
+import com.xqmsg.sdk.v2.Reasons;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
@@ -111,15 +112,17 @@ public class Encrypt extends XQModule {
                                                                               final String locator = (String) validateResponse.payload.get(ServerResponse.DATA);
                                                                               return new ServerResponse(CallStatus.Ok, Map.of(Encrypt.LOCATOR_KEY, locator, Encrypt.ENCRYPTED_TEXT, encryptedText));
                                                                             }
-                                                                            case Error: {
+                                                                            default: {
                                                                               return validateResponse;
                                                                             }
-                                                                            default:
-                                                                              throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", validateResponse.status));
+
                                                                           }
                                                                         });
                                                       });
                                             } catch (Exception e) {
+                                              String errorMessage = e.getMessage();
+                                              logger.warning(errorMessage);
+                                              return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage));
                                             }
                                           }
                                           case Error: {
