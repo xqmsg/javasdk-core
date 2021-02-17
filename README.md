@@ -35,12 +35,8 @@ A Java Implementation of XQ Message SDK, V.2
    * `-Dxqsdk-user.email=username@domain-name.com` <br>
      _validation pins will be sent to this email address_<br>
    * `-Dxqsdk-user2.email=username2@domain-name.com`<br>
-     _and additional email, needed for tests with `recipients`<br>
-     Note: to mimic pins of different accounts while using the same email account it is recommended to add +... <br>
-            after the email's username part, for example: john.doe+user2@example.com_<br>
+     _and additional email, needed for tests involving `recipients`<br>
    * `-Dxqsdk-recipients.email=<recipient-email>` <br>
-
-    validation pins will all be sent to john.doe@example.com ignoring the `+user2` portion
 
 ------
 ## _Services_
