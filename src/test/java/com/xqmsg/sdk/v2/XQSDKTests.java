@@ -536,7 +536,7 @@ class XQSDKTests {
 
     final Path originalSpec = Paths.get(String.format("src/test/resources/%s.ctrl", "utf-8-sampler"));
     final Path sourceSpec = Paths.get(String.format("src/test/resources/%s.txt.xqf", "utf-8-sampler"));
-    final Path targetSpec = Paths.get(String.format("src/test/resources/%s.txt", "utf-8-sampler"));
+    final Path targetSpec = Paths.get(String.format("src/test/resources/%s.out.txt", "utf-8-sampler"));
 
     Path resultSpec = FileDecrypt.with(sdk, AlgorithmEnum.OTPv2)
             .supplyAsync(Optional.of(Map.of(FileDecrypt.SOURCE_FILE_PATH, sourceSpec, FileDecrypt.TARGET_FILE_PATH, targetSpec)))
@@ -549,12 +549,15 @@ class XQSDKTests {
                 }
                 default: {
                   logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
-                  fail();
                   return null;
                 }
               }
 
             }).get();
+
+
+
+    assertNotEquals(resultSpec, null);
 
     String originalFileContent = Files.readString(originalSpec);
     String decryptedFileContent = Files.readString(resultSpec);

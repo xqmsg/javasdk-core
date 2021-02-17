@@ -260,7 +260,7 @@ public class OTPv2Encryption implements XQAlgorithm {
 
                   if (key == null) {
                     String message = "Unable to retrieve a valid key.";
-                    return new ServerResponse(CallStatus.Error, Reasons.InvalidQuantumKey, message);
+                    return new ServerResponse(CallStatus.Error, Reasons.InvalidEncryptionKey, message);
                   }
 
                   byte[] keyData = key.getBytes(StandardCharsets.UTF_8);
