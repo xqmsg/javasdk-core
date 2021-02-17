@@ -313,7 +313,6 @@ class XQSDKTests {
    * -Dxqsdk-user.email=john.doe@example.com
    * -Dxqsdk-user2.email=john.doe+2@example.com
    * <p>
-   * -Dxqsdk-recipients.john.doe@example.com
    */
   @Test
   @Order(60)

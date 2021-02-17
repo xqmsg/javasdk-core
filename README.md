@@ -30,13 +30,15 @@ A Java Implementation of XQ Message SDK, V.2
 
     loads: test/resources/test-config.properties
 
-   * `-Dclear-cache=false|true`<r>
-     _re-use access tokens from previous run or create new ones each time
+   * `-Dclear-cache=false|true`<br>
+      _re-use access tokens from previous run or create new ones each time_
    * `-Dxqsdk-user.email=username@domain-name.com` <br>
-     _validation pins will be sent to this email address_<br>
-   * `-Dxqsdk-user2.email=username2@domain-name.com`<br>
-     _and additional email, needed for tests involving `recipients`<br>
-   * `-Dxqsdk-recipients.email=<recipient-email>` <br>
+      _validation pins will be sent to this email address_<br>
+   * `-Dxqsdk-user2.email=username@domain-name.com`<br>
+     _an additional email for tests involving `merge tokens`_<br>
+   * `-Dxqsdk-recipients.email=username@domain-name.com` <br>
+      _an additional email, needed for tests involving `recipients`_<br>
+      
 
 ------
 ## _Services_
