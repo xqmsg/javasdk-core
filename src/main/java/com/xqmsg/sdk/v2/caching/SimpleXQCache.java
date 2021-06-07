@@ -187,6 +187,7 @@ public class SimpleXQCache implements XQCache {
       profiles.forEach(user -> {
         map.remove(makeExchangeKey(user));
         map.remove(makeXQAccessKey(user));
+        map.remove(makeDashboardAccessKey(user));
       });
 
       map.remove(ACTIVE_PROFILE_KEY);
