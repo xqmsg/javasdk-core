@@ -7,6 +7,7 @@ import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
 import com.xqmsg.sdk.v2.caching.XQCache;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -35,13 +36,11 @@ public class Authorize extends XQModule {
   public static String NOTIFICATIONS = "notifications";
 
   private static final String SERVICE_NAME = "authorize";
-  private final XQSDK sdk;
-  private final XQCache cache;
 
   private Authorize(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
-    this.sdk = sdk;
-    this.cache = sdk.getCache();
+     super.sdk = sdk;
+     super.cache = sdk.getCache();
   }
 
   /**
@@ -74,15 +73,16 @@ public class Authorize extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return CompletableFuture.completedFuture(
-            validate.andThen(
-                    (args) -> {
+            validate
+                    .andThen((result) -> {
                       ServerResponse serverResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
                               Optional.of(SERVICE_NAME),
                               CallMethod.Post,
                               Optional.empty(),
-                              maybeArgs);
+                              Optional.of(Destination.XQ),
+                              result);
 
-                      Map<String, Object> inputArguments = maybeArgs.get();
+                      Map<String, Object> inputArguments = result.get();
                       String user = (String) inputArguments.get(USER);
 
                       switch (serverResponse.status) {

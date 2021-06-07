@@ -6,6 +6,7 @@ import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
 import com.xqmsg.sdk.v2.algorithms.XQAlgorithm;
 import com.xqmsg.sdk.v2.quantum.FetchQuantumEntropy;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -73,7 +74,7 @@ public class FileEncrypt extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return
-            validate.andThen(
+            validate.andThen((result)->
                     authorize.andThen(
                             (authorizationToken) -> {
 
@@ -126,7 +127,8 @@ public class FileEncrypt extends XQModule {
                                             throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", keyResponse.status));
                                         }
                                       });
-                            })
+                            }).apply(Optional.of(Destination.XQ),result)
+
             ).apply(maybeArgs);
 
 

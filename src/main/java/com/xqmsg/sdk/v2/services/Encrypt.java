@@ -8,6 +8,7 @@ import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
 import com.xqmsg.sdk.v2.algorithms.XQAlgorithm;
 import com.xqmsg.sdk.v2.quantum.FetchQuantumEntropy;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -74,7 +75,7 @@ public class Encrypt extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return
-            validate.andThen(
+            validate.andThen((result)->
                     authorize.andThen(
                             (authorizationToken) -> {
                               Map<String, Object> args = maybeArgs.get();
@@ -133,7 +134,8 @@ public class Encrypt extends XQModule {
                                         }
                                       });
 
-                    }))
+                    }).apply(Optional.of(Destination.XQ), result)
+            )
             .apply(maybeArgs) ;
 
 

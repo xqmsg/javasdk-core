@@ -4,6 +4,7 @@ import com.xqmsg.sdk.v2.CallMethod;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -58,13 +59,14 @@ public class UploadKey extends XQModule {
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-    return validate.andThen(
+    return validate.andThen((result)->
               authorize.andThen(
                       (authorizationToken) -> {
                         ServerResponse uploadResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
                                 Optional.of(SERVICE_NAME),
                                 CallMethod.Post,
                                 Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
+                                Optional.of(Destination.XQ),
                                 maybeArgs);
 
                         switch (uploadResponse.status) {
@@ -78,8 +80,9 @@ public class UploadKey extends XQModule {
                             return CompletableFuture.completedFuture(uploadResponse);
                           }
                         }
-              })
-          ).apply(maybeArgs);
+                      }).apply(Optional.of(Destination.XQ),result)
+
+    ).apply(maybeArgs);
 
 
   }

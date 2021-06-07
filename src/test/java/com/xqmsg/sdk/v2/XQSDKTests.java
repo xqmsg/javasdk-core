@@ -22,6 +22,7 @@ import com.xqmsg.sdk.v2.services.GrantKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeUserAccess;
 import com.xqmsg.sdk.v2.services.UpdateSettings;
+import com.xqmsg.sdk.v2.services.dashboard.DashboardLogin;
 import com.xqmsg.sdk.v2.utils.DateTimeFormats;
 import org.joda.time.LocalDateTime;
 import org.joda.time.Period;
@@ -79,17 +80,22 @@ class XQSDKTests {
 
 
   /**
-   * This test  requires user input. <br> You may have to configure IntelliJ to do so. <br>
+   * Tests xq user login. If successful an xq access token will be returned from the server.
+   * This test requires manual console input for pin code validation. <br>
+   * If you are using IntelliJ the console may not be set to accept user input. <br>
+   * You may have to change console settings. <br>
    * Please see {@link #readOneLineFromTerminalInput} for more information.<br>
    */
   @Test
   @Order(10)
-  void testAuthorize() throws Exception {
+  void testXQAuthorize() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
 
     try {
-      sdk.getCache().getXQAccess(email, true);
+      String xqAccessToken = sdk.getCache().getXQAccess(email, true);
+      logger.info(String.format("The user had already been authorized for xq usage.\nThe xq access token is: %s", xqAccessToken));
+
     } catch (StatusCodeException e) {
 
       logger.info(String.format("%s", e.statusMessage()));
@@ -107,6 +113,51 @@ class XQSDKTests {
 
     }
 
+  }
+
+
+  /**
+   * Tests dashboard user login. If successful a dashboard access token will be returned from the server.
+   * This test relies on an existing authenticated xq user.
+   * XQ user authorization happens in {@link #testXQAuthorize()}
+   */
+  @Test
+  @Order(15)
+  void testDashboardLogin() throws Exception {
+
+    String email = System.getProperty("xqsdk-user.email");
+    try {
+      String dashboardAccessToken = sdk.getCache().getDashboardAccess(email, true);
+      logger.info(String.format("The user had already been authorized for dashboard usage.\nThe dashboard authorization token is: %s", dashboardAccessToken));
+      assertTrue(true);
+    } catch (StatusCodeException e) {
+
+      logger.info(String.format("%s", e.statusMessage()));
+
+      String result = DashboardLogin.with(sdk)
+              .supplyAsync(Optional.empty())
+              .thenApply(
+                      (ServerResponse serverResponse) -> {
+                        switch (serverResponse.status) {
+                          case Ok: {
+                            String accessToken = (String) serverResponse.payload.get(ServerResponse.DATA);
+
+                            logger.info(String.format("Dashboard Access Token: %s", accessToken));
+                            return "success";
+                          }
+                          case Error: {
+                            logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                            return "error";
+                          }
+                          default:
+                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                        }
+                      }
+              ).get();
+
+      assertEquals("success", result);
+
+    }
   }
 
   @Test
@@ -606,7 +657,7 @@ class XQSDKTests {
   void testCheckApiKey() throws Exception {
 
     List<String> scopes = CheckApiKey.with(sdk)
-            .supplyAsync(Optional.of((Map.of(CheckApiKey.API_KEY, sdk.APPLICATION_KEY))))
+            .supplyAsync(Optional.of((Map.of(CheckApiKey.API_KEY, sdk.XQ_APPLICATION_KEY))))
             .thenApply(
                     (ServerResponse apiKeyCheckResponse) -> {
                       switch (apiKeyCheckResponse.status) {
@@ -702,11 +753,13 @@ class XQSDKTests {
   //////////                             UTILITY METHODS                                  //////////
   //////////////////////////////////////////////////////////////////////////////////////////////////
 
+  
   private String getPinFromTerminalInput() {
     return readOneLineFromTerminalInput("Code", "Please enter the pin number");
   }
 
   /**
+   * Utility method for reading user input needed to enter for example the user validation pin sent by email.<br>
    * In order to accept user input from the IntelliJ Console window during junit tests <br>
    * please go to the toolbar and select `Help/Edit Custom VM Options`.<br>
    * The `idea.vmoptions` file will be opened.<br>

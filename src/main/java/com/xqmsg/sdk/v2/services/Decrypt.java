@@ -4,6 +4,7 @@ import com.xqmsg.sdk.v2.AlgorithmEnum;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -56,10 +57,10 @@ public class Decrypt extends XQModule {
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-    return
-            validate.andThen(
-                    authorize.andThen(
-                            (authorizationToken) -> {
+    return validate
+            .andThen((result) ->
+                    authorize
+                            .andThen((authorizationToken) -> {
 
                               Map<String, Object> args = maybeArgs.get();
 
@@ -79,13 +80,11 @@ public class Decrypt extends XQModule {
                                                   default: {
                                                     return CompletableFuture.completedFuture(keyRetrievalResponse);
                                                   }
-
                                                 }
                                               });
 
-
-                            }))
-                    .apply(maybeArgs);
+                            }).apply(Optional.of(Destination.XQ), result))
+            .apply(maybeArgs);
   }
 
   @Override

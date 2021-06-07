@@ -5,9 +5,7 @@ package com.xqmsg.sdk.v2;
  * @date Dec 23, 2020
  */
 
- public enum AlgorithmEnum {
-  AES,
-  OTPv2,
-
-
+public enum AlgorithmEnum {
+    AES,
+    OTPv2
 }

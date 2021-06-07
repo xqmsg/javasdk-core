@@ -7,6 +7,7 @@ import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
 import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -64,41 +65,42 @@ public class CombineAuthorizations extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return CompletableFuture.completedFuture(
-            validate.andThen(
-                    authorize.andThen(
-                            (authorizationToken) -> {
-                              try {
-                                Map<String, Object> args = maybeArgs.get();
-                                List<String> accessTokens = (List) args.get(TOKENS);
+            validate
+                    .andThen((result) ->
+                            authorize
+                                    .andThen((authorizationToken) -> {
+                                      try {
+                                        Map<String, Object> args = result.get();
+                                        List<String> accessTokens = (List) args.get(TOKENS);
 
-                                if (accessTokens == null || accessTokens.size() == 0) {
-                                  for (String profile : cache.listProfiles()) {
-                                    String xqAccess = cache.getXQAccess(profile, true);
-                                    if (xqAccess != null) {
-                                      accessTokens.add(xqAccess);
-                                    }
-                                  }
-                                }
-                                if (accessTokens == null || accessTokens.size() == 0) {
-                                  return new ServerResponse(CallStatus.Error, Reasons.NoneProvided, "No Access tokens available to merge");
-                                }
+                                        if (accessTokens == null || accessTokens.size() == 0) {
+                                          for (String profile : cache.listProfiles()) {
+                                            String xqAccess = cache.getXQAccess(profile, true);
+                                            if (xqAccess != null) {
+                                              accessTokens.add(xqAccess);
+                                            }
+                                          }
+                                        }
+                                        if (accessTokens == null || accessTokens.size() == 0) {
+                                          return new ServerResponse(CallStatus.Error, Reasons.NoneProvided, "No Access tokens available to merge");
+                                        }
 
-                                Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
+                                        Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
 
-                                return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                                        Optional.of(SERVICE_NAME),
-                                        CallMethod.Post,
-                                        Optional.of(headerProperties),
-                                        Optional.of(Map.of(CombineAuthorizations.TOKENS, accessTokens))
-                                );
-                              } catch (StatusCodeException s) {
-                                return new ServerResponse(CallStatus.Error, Reasons.Unauthorized, s.statusMessage());
-                              }
-                            })
-            )
+                                        return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                                Optional.of(SERVICE_NAME),
+                                                CallMethod.Post,
+                                                Optional.of(headerProperties),
+                                                Optional.of(Destination.XQ),
+                                                Optional.of(Map.of(CombineAuthorizations.TOKENS, accessTokens))
+                                        );
+                                      } catch (StatusCodeException s) {
+                                        return new ServerResponse(CallStatus.Error, Reasons.Unauthorized, s.statusMessage());
+                                      }
+                                    })
+                                    .apply(Optional.empty(), result)
+                    )
                     .apply(maybeArgs));
-
-
   }
 
   @Override

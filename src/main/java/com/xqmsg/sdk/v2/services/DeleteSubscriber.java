@@ -5,6 +5,7 @@ import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
 import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,7 @@ public class DeleteSubscriber extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return CompletableFuture.completedFuture(
-            validate.andThen(
+            validate.andThen((result) ->
                     authorize.andThen(
                             (authorizationToken) -> {
                               Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
@@ -61,6 +62,7 @@ public class DeleteSubscriber extends XQModule {
                                       Optional.of(SERVICE_NAME),
                                       CallMethod.Delete,
                                       Optional.of(headerProperties),
+                                      Optional.of(Destination.XQ),
                                       maybeArgs);
                               switch (deleteResponse.status) {
                                 case Ok: {
@@ -75,13 +77,10 @@ public class DeleteSubscriber extends XQModule {
                                   return deleteResponse;
                                 }
                               }
+                            }).apply(Optional.of(Destination.XQ), result)
 
-
-                            })
             )
-                    .apply(maybeArgs));
-
-
+            .apply(maybeArgs));
   }
 
   @Override

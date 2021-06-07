@@ -4,6 +4,7 @@ package com.xqmsg.sdk.v2;
 import com.xqmsg.sdk.v2.caching.XQCache;
 import com.xqmsg.sdk.v2.exceptions.HttpStatusCodes;
 import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -32,26 +34,6 @@ public abstract class XQModule {
 
   public abstract CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> args);
 
-  protected CompletableFuture<Optional<Map<String, Object>>> validateInput(Optional<Map<String, Object>> maybeArgs) {
-    return CompletableFuture.supplyAsync(() -> {
-      if (requiredFields().size() == 0) {
-        return maybeArgs;
-      }
-      if (maybeArgs.isEmpty()) {
-        throw new RuntimeException("Required: " + requiredFields().toString());
-      }
-      HashSet<String> missing = new HashSet<>(requiredFields());
-      HashSet<String> input = new HashSet<>(maybeArgs.get().keySet());
-
-      missing.removeAll(asList(input.toArray()));
-
-      if (missing.size() > 0) {
-        throw new RuntimeException("missing " + missing + "!");
-      }
-      return maybeArgs;
-    });
-  }
-
   protected static <T> Logger Logger(Class<T> clazz) {
     try {
       LogManager.getLogManager().readConfiguration(clazz.getClassLoader().getResourceAsStream("test-logging.properties"));
@@ -61,6 +43,28 @@ public abstract class XQModule {
       return null;
     }
   }
+
+    protected Function< Optional<Map<String, Object>>, Optional<Map<String, Object>>> validate =
+            ( Optional<Map<String, Object>> maybeArgs) -> {
+
+                if (requiredFields().size() == 0) {
+                    return maybeArgs;
+                }
+
+                if (maybeArgs.isEmpty()) {
+                    throw new RuntimeException("Required: " + requiredFields().toString());
+                }
+                HashSet<String> missing = new HashSet<>(requiredFields());
+                HashSet<String> input = new HashSet<>(maybeArgs.get().keySet());
+
+                missing.removeAll(asList(input.toArray()));
+
+                if (missing.size() > 0) {
+                    throw new RuntimeException("missing " + missing + "!");
+                }
+                return maybeArgs;
+
+            };
 
   protected Function<Optional<Map<String, Object>>, String> preAuthorize =
           (Optional<Map<String, Object>> maybeArgs) -> {
@@ -81,13 +85,26 @@ public abstract class XQModule {
             }
           };
 
-  protected Function<Optional<Map<String, Object>>, String> authorize =
-          (Optional<Map<String, Object>> maybeArgs) -> {
-            try {
-              // Ensure that there is an active profile.
-              String activeProfile = cache.getActiveProfile(true);
 
-              String authorizationToken = cache.getXQAccess(activeProfile, true);
+  protected BiFunction<Optional<Destination>, Optional<Map<String, Object>>, String> authorize =
+          (Optional<Destination> maybeDestination, Optional<Map<String, Object>> maybeArgs) -> {
+                try {
+                    // Ensure that there is an active profile.
+                String activeProfile = cache.getActiveProfile(true);
+                String authorizationToken = null;
+
+                Destination destination = maybeDestination.orElse(Destination.XQ);
+                switch (destination) {
+                    case XQ: {
+                        authorizationToken = cache.getXQAccess(activeProfile, true);
+                        break;
+                    }
+                    case DASHBOARD: {
+                        authorizationToken = cache.getDashboardAccess(activeProfile, true);
+                        break;
+                    }
+                }
+
               if (authorizationToken == null) {
                 throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED, String.format("Access Token not Found for %s", activeProfile));
               }
@@ -99,25 +116,4 @@ public abstract class XQModule {
             }
           };
 
-  protected Function<Optional<Map<String, Object>>, Optional<Map<String, Object>>> validate =
-          (Optional<Map<String, Object>> maybeArgs) -> {
-
-            if (requiredFields().size() == 0) {
-              return maybeArgs;
-            }
-
-            if (maybeArgs.isEmpty()) {
-              throw new RuntimeException("Required: " + requiredFields().toString());
-            }
-            HashSet<String> missing = new HashSet<>(requiredFields());
-            HashSet<String> input = new HashSet<>(maybeArgs.get().keySet());
-
-            missing.removeAll(asList(input.toArray()));
-
-            if (missing.size() > 0) {
-              throw new RuntimeException("missing " + missing + "!");
-            }
-            return maybeArgs;
-
-          };
 }

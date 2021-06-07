@@ -8,6 +8,7 @@ import com.xqmsg.sdk.v2.algorithms.OTPv2Encryption;
 import com.xqmsg.sdk.v2.algorithms.XQAlgorithm;
 import com.xqmsg.sdk.v2.caching.SimpleXQCache;
 import com.xqmsg.sdk.v2.caching.XQCache;
+import com.xqmsg.sdk.v2.utils.Destination;
 import com.xqmsg.sdk.v2.utils.XQMsgJSONTypeAdapter;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -43,8 +44,10 @@ public class XQSDK {
   public static final String APPLICATION_JSON = "application/json";
   public static final String TEXT_PLAIN_UTF_8 = "text/plain;charset=UTF-8";
 
-  public final String APPLICATION_KEY;
+  public final String XQ_APPLICATION_KEY;
+  public final String DASHBOARD_APPLICATION_KEY;
 
+  public URL DASHBOARD_SERVER_URL;
   public URL SUBSCRIPTION_SERVER_URL;
   public URL VALIDATION_SERVER_URL;
   public URL KEY_SERVER_URL;
@@ -61,6 +64,7 @@ public class XQSDK {
 
     try {
 
+      DASHBOARD_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.dashboard-server-url"));
       SUBSCRIPTION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.subscription-server-url"));
       VALIDATION_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.validation-server-url"));
       KEY_SERVER_URL = new URL(applicationProperties.getProperty("com.xq-msg.sdk.v2.key-server-url"));
@@ -75,7 +79,8 @@ public class XQSDK {
       throw new RuntimeException(String.format("Fatal Configuration Exception %s ", e.getMessage()), e);
     }
 
-    APPLICATION_KEY = applicationProperties.getProperty("com.xq-msg.sdk.v2.api-key");
+    XQ_APPLICATION_KEY = applicationProperties.getProperty("com.xq-msg.sdk.v2.xq-api-key");
+    DASHBOARD_APPLICATION_KEY = applicationProperties.getProperty("com.xq-msg.sdk.v2.dashboard-api-key");
 
     ALGORITHMS = new HashMap<>();
     ALGORITHMS.put(AlgorithmEnum.AES, new AESEncryption());
@@ -83,20 +88,25 @@ public class XQSDK {
 
   }
 
-  public ServerResponse call(URL baseUrl, Optional<String> mayBeService, CallMethod method, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) {
+  public ServerResponse call(URL baseUrl,
+                             Optional<String> mayBeService,
+                             CallMethod callMethod,
+                             Optional<Map<String, String>> maybeHeaderProperties,
+                             Optional<Destination> maybeDestination,
+                             Optional<Map<String, Object>> maybePayload) {
 
     assert baseUrl != null : "baseUrl cannot be null";
-    assert method != null : "method cannot be null";
+    assert callMethod != null : "method cannot be null";
 
-    if (maybePayload.isPresent() && List.of(CallMethod.Post, CallMethod.Options).contains(method)) {
+    if (maybePayload.isPresent() && List.of(CallMethod.Post,  CallMethod.Patch, CallMethod.Options).contains(callMethod)) {
       try {
-        return makeBodyRequest(baseUrl, method.name().toUpperCase(), mayBeService, maybeHeaderProperties, maybePayload);
+        return makeBodyRequest(baseUrl, callMethod, mayBeService, maybeDestination, maybeHeaderProperties, maybePayload);
       } catch (IOException e) {
         return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
       }
     } else {
       try {
-        return makeParamRequest(baseUrl, method.name().toUpperCase(), mayBeService, maybeHeaderProperties, maybePayload);
+        return makeParamRequest(baseUrl, callMethod, mayBeService, maybeDestination, maybeHeaderProperties, maybePayload);
       } catch (IOException e) {
         return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
       }
@@ -104,17 +114,26 @@ public class XQSDK {
   }
 
 
-
-  private ServerResponse makeBodyRequest(URL baseUrl, String method, Optional<String> maybeService, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) throws IOException {
+  private ServerResponse makeBodyRequest(URL baseUrl, CallMethod callMethod, Optional<String> maybeService, Optional<Destination> maybeDestination, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) throws IOException {
 
     final String spec = String.format("%s%s", baseUrl, maybeService.map(service -> "/" + service).orElse(""));
     final URL url = new URL(spec);
 
     final HttpsURLConnection httpsConnection = (HttpsURLConnection) url.openConnection();
 
-    httpsConnection.setRequestProperty(XQSDK.API_KEY, APPLICATION_KEY);
-    httpsConnection.setRequestMethod(method);
-    httpsConnection.setDoOutput(true);
+    Destination destination = maybeDestination.orElse(Destination.XQ);
+      switch (destination) {
+        case XQ: {
+          httpsConnection.setRequestProperty(XQSDK.API_KEY, XQ_APPLICATION_KEY);
+          break;
+        }
+        case DASHBOARD: {
+          httpsConnection.setRequestProperty(XQSDK.API_KEY, DASHBOARD_APPLICATION_KEY);
+          break;
+        }
+      }
+      httpsConnection.setRequestMethod(callMethod.name().toUpperCase());
+      httpsConnection.setDoOutput(true);
 
     try {
 
@@ -146,7 +165,7 @@ public class XQSDK {
   }
 
 
-  private ServerResponse makeParamRequest(URL baseUrl, String method, Optional<String> maybeService, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) throws IOException {
+  private ServerResponse makeParamRequest(URL baseUrl, CallMethod callMethod, Optional<String> maybeService, Optional<Destination> maybeDestination, Optional<Map<String, String>> maybeHeaderProperties, Optional<Map<String, Object>> maybePayload) throws IOException {
 
     String spec = String.format("%s%s%s",
             baseUrl, maybeService.map(service -> "/" + service).orElse(""),
@@ -154,26 +173,36 @@ public class XQSDK {
 
     URL url = new URL(spec);
 
-    HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+    HttpsURLConnection httpsConnection = (HttpsURLConnection) url.openConnection();
 
     try {
 
-      connection.setRequestProperty(XQSDK.API_KEY, APPLICATION_KEY);
-      connection.setRequestMethod(method);
+      Destination destination = maybeDestination.orElse(Destination.XQ);
+      switch (destination) {
+        case XQ: {
+          httpsConnection.setRequestProperty(XQSDK.API_KEY, XQ_APPLICATION_KEY);
+          break;
+        }
+        case DASHBOARD: {
+          httpsConnection.setRequestProperty(XQSDK.API_KEY, DASHBOARD_APPLICATION_KEY);
+          break;
+        }
+      }
+      httpsConnection.setRequestMethod(callMethod.name().toUpperCase());
 
       maybeHeaderProperties.ifPresentOrElse(
               (headerProperties) -> {
-                headerProperties.forEach(connection::setRequestProperty);
+                headerProperties.forEach(httpsConnection::setRequestProperty);
                 if (!headerProperties.containsKey(XQSDK.CONTENT_TYPE)) {
-                  connection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
+                  httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
                 }
               },
               () -> {
-                connection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
+                httpsConnection.setRequestProperty(XQSDK.CONTENT_TYPE, APPLICATION_JSON);
               }
       );
 
-      Map<String, Object> response = receiveData(connection);
+      Map<String, Object> response = receiveData(httpsConnection);
 
       logger.info(String.format("Server Response: %s ", response));
       return convertToServerResponse(response);
@@ -184,7 +213,7 @@ public class XQSDK {
       logger.warning(errorMessage);
       return new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage);
     } finally {
-      connection.disconnect();
+      httpsConnection.disconnect();
     }
   }
 

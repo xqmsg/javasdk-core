@@ -7,6 +7,7 @@ import java.util.List;
 public interface XQCache {
 
   String XQ_PREFIX = "xq";
+  String DASHBOARD_PREFIX = "dsb";
   String EXCHANGE_PREFIX = "exchange";
   String PROFILE_LIST_KEY = "available-profiles";
   String ACTIVE_PROFILE_KEY = "active-profile";
@@ -34,6 +35,12 @@ public interface XQCache {
    */
   void putXQAccess(String user, String accessToken);
 
+ /**
+   * @param user
+   * @param accessToken
+   */
+  void putDashboardAccess(String user, String accessToken);
+
   /**
    * @param user
    * @param required
@@ -44,8 +51,21 @@ public interface XQCache {
 
   /**
    * @param user
+   * @param required
+   * @return
+   * @throws StatusCodeException
    */
-  boolean removeXQAccess(String user);
+  String getDashboardAccess(String user, boolean required) throws StatusCodeException;
+
+  /**
+   * @param user
+   */
+  boolean removeXQAccess(String user) ;
+
+ /**
+   * @param user
+   */
+  boolean removeDashoardAccess(String user) ;
 
   /**
    * @param user

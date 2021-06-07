@@ -6,6 +6,7 @@ import com.xqmsg.sdk.v2.Reasons;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -68,9 +69,9 @@ public class AuthorizeAlias extends XQModule {
                                       Optional.of(SERVICE_NAME),
                                       CallMethod.Post,
                                       Optional.empty(),
+                                      Optional.of(Destination.XQ),
                                       args);
                             })
-
            .apply(maybeArgs))
             .exceptionally(e->
                     new ServerResponse(CallStatus.Error, Reasons.MissingParameters,e.getMessage()));

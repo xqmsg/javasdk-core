@@ -6,6 +6,7 @@ import com.xqmsg.sdk.v2.Reasons;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,7 @@ public class CodeValidator extends XQModule {
                                         Optional.of(SERVICE_NAME),
                                         CallMethod.Get,
                                         Optional.of(headerProperties),
+                                        Optional.of(Destination.XQ),
                                         maybeArgs);
                                 switch (validationResponse.status) {
                                   case Ok: {

@@ -4,6 +4,7 @@ import com.xqmsg.sdk.v2.CallMethod;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -57,7 +58,7 @@ public class RevokeKeyAccess extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return CompletableFuture.completedFuture(
-            validate.andThen(
+            validate.andThen((result)->
                     authorize.andThen(
                             (authorizationToken) -> {
 
@@ -71,8 +72,10 @@ public class RevokeKeyAccess extends XQModule {
                                       Optional.of(DYNAMIC_SERVICE_NAME),
                                       CallMethod.Delete,
                                       Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
+                                      Optional.of(Destination.XQ),
                                       Optional.of(Map.of()));
-                            }))
+                            }).apply(Optional.of(Destination.XQ),result)
+            )
                     .apply(maybeArgs));
 
 

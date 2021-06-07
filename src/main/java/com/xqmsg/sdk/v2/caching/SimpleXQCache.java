@@ -49,12 +49,12 @@ public class SimpleXQCache implements XQCache {
 
   @Override
   public void putXQAccess(String user, String accessToken) {
-    map.put(makeAccessKey(user), accessToken);
+    map.put(makeXQAccessKey(user), accessToken);
 }
 
   @Override
   public String getXQAccess(String user, boolean required) throws StatusCodeException {
-    String accessToken = (String) map.get(makeAccessKey(user));
+    String accessToken = (String) map.get(makeXQAccessKey(user));
     if (required && Objects.isNull(accessToken)) {
       throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED);
     }
@@ -63,13 +63,46 @@ public class SimpleXQCache implements XQCache {
 
   @Override
   public boolean removeXQAccess(String user) {
-    String accessToken = getXQPreAuthToken(user);
-    if (accessToken != null) {
-      boolean success = map.remove(user, accessToken);
-      if (success) {
+    String accessToken = null;
+    try {
+      accessToken = getXQAccess(user, false);
+      if (accessToken != null) {
+        boolean success = map.remove(user, accessToken);
+        if (success) {
+        }
+        return success;
+      }
+    } catch (StatusCodeException e) {
     }
-      return success;
+    return true;
+  }
+
+  @Override
+  public void putDashboardAccess(String user, String accessToken) {
+    map.put(makeDashboardAccessKey(user), accessToken);
+  }
+
+  @Override
+  public String getDashboardAccess(String user, boolean required) throws StatusCodeException {
+    String accessToken = (String) map.get(makeDashboardAccessKey(user));
+    if (required && Objects.isNull(accessToken)) {
+      throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED);
     }
+    return accessToken;
+  }
+
+  @Override
+  public boolean removeDashoardAccess(String user)  {
+    String accessToken = null;
+    try {
+      accessToken = getDashboardAccess(user, false);
+      if (accessToken != null) {
+        boolean success = map.remove(user, accessToken);
+        if (success) {
+        }
+        return success;
+      }
+    } catch (StatusCodeException e) { }
     return true;
   }
 
@@ -136,7 +169,7 @@ public class SimpleXQCache implements XQCache {
             .dropWhile(profile -> profile.equals(user))
             .findFirst()
             .ifPresent(profile -> {
-              map.remove(makeAccessKey(user));
+              map.remove(makeXQAccessKey(user));
               map.remove(makeExchangeKey(user));
           putActiveProfile(profile);
             });
@@ -153,7 +186,7 @@ public class SimpleXQCache implements XQCache {
     if (profiles != null) {
       profiles.forEach(user -> {
         map.remove(makeExchangeKey(user));
-        map.remove(makeAccessKey(user));
+        map.remove(makeXQAccessKey(user));
       });
 
       map.remove(ACTIVE_PROFILE_KEY);
@@ -174,6 +207,7 @@ public class SimpleXQCache implements XQCache {
   }
 
   private String makeExchangeKey(String unvalidatedUser){return String.format("%s-%s-%s", EXCHANGE_PREFIX, XQ_PREFIX, unvalidatedUser);}
-  private String makeAccessKey(String validatedUser){return String.format("%s-%s", XQ_PREFIX, validatedUser);}
+  private String makeXQAccessKey(String validatedUser){return String.format("%s-%s", XQ_PREFIX, validatedUser);}
+  private String makeDashboardAccessKey(String validatedUser){return String.format("%s-%s", DASHBOARD_PREFIX, validatedUser);}
 
 }

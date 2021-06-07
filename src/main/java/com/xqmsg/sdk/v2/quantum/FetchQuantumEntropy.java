@@ -4,6 +4,7 @@ import com.xqmsg.sdk.v2.CallMethod;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,7 @@ public class FetchQuantumEntropy extends XQModule {
               Optional.empty(),
               CallMethod.Get,
               Optional.empty(),
+              Optional.of(Destination.XQ),
               Optional.of(Map.of("ks", "256")));
     });
   }

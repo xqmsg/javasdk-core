@@ -4,6 +4,7 @@ import com.xqmsg.sdk.v2.CallMethod;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -64,7 +65,7 @@ public class RevokeUserAccess extends XQModule {
 
 
     return CompletableFuture.completedFuture(
-            validate.andThen(
+            validate.andThen((result)->
                     authorize.andThen(
                             (authorizationToken) -> {
                               Map<String, Object> args = maybeArgs.get();
@@ -78,10 +79,12 @@ public class RevokeUserAccess extends XQModule {
                                       Optional.of(DYNAMIC_SERVICE_NAME),
                                       CallMethod.Options,
                                       Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
+                                      Optional.of(Destination.XQ),
                                       Optional.of(Map.of(
                                               RECIPIENTS, recipients.stream().collect(Collectors.joining(","))
                                       )));
-                            }))
+                            }).apply(Optional.of(Destination.XQ),result)
+            )
                     .apply(maybeArgs));
 
 

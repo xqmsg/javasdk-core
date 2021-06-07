@@ -4,6 +4,7 @@ import com.xqmsg.sdk.v2.AlgorithmEnum;
 import com.xqmsg.sdk.v2.ServerResponse;
 import com.xqmsg.sdk.v2.XQModule;
 import com.xqmsg.sdk.v2.XQSDK;
+import com.xqmsg.sdk.v2.utils.Destination;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -60,7 +61,7 @@ public class FileDecrypt extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return
-            validate.andThen(
+            validate.andThen((result)->
                     authorize.andThen(
                             (authorizationToken) -> {
                               Map<String, Object> args = maybeArgs.get();
@@ -89,7 +90,8 @@ public class FileDecrypt extends XQModule {
 
                               });
 
-                            })
+                            }).apply(Optional.of(Destination.XQ),result)
+
             ).apply(maybeArgs);
 
   }
