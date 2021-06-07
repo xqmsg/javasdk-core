@@ -78,18 +78,18 @@ public class AddContact extends XQModule {
 
     return CompletableFuture.completedFuture(
             validate
-               .andThen((result) ->
+                    .andThen((result) ->
                             authorize
                                     .andThen((dashboardAccessToken) -> {
-                           Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", dashboardAccessToken));
+                                      Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", dashboardAccessToken));
                                       return sdk.call(sdk.DASHBOARD_SERVER_URL,
                                               Optional.of(SERVICE_NAME),
                                               CallMethod.Post,
                                               Optional.of(headerProperties),
                                               Optional.of(Destination.DASHBOARD),
-                                   result);
+                                              result);
                                     })
-                       .apply(Optional.of(Destination.DASHBOARD), result)
+                                    .apply(Optional.of(Destination.DASHBOARD), result)
                     )
                     .apply(maybeArgs))
             .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));

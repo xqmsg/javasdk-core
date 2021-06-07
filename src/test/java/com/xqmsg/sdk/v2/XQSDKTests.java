@@ -23,6 +23,7 @@ import com.xqmsg.sdk.v2.services.RevokeKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeUserAccess;
 import com.xqmsg.sdk.v2.services.UpdateSettings;
 import com.xqmsg.sdk.v2.services.dashboard.DashboardLogin;
+import com.xqmsg.sdk.v2.services.dashboard.GetApplications;
 import com.xqmsg.sdk.v2.utils.DateTimeFormats;
 import org.joda.time.LocalDateTime;
 import org.joda.time.Period;
@@ -159,6 +160,41 @@ class XQSDKTests {
 
     }
   }
+
+
+  /**
+   *
+   **/
+  @Test
+  @Order(16)
+  void testDashboardGetApplications() throws Exception {
+
+    List apps = GetApplications.with(sdk)
+            .supplyAsync(Optional.empty())
+            .thenApply(
+                    (ServerResponse serverResponse) -> {
+                      switch (serverResponse.status) {
+                        case Ok: {
+                          List<Map<String, Object>> applications = (List<Map<String, Object>>) serverResponse.payload.get(GetApplications.APPS);
+                          applications.forEach(app -> {
+                            logger.info(String.format("Name: %s, ID: %s", app.get("name"), app.get("id")));
+                          });
+                          return applications;
+                        }
+                        case Error: {
+                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                          return List.of();
+                        }
+                        default:
+                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                      }
+                    }
+            ).get();
+
+    assertNotEquals(0, apps.size());
+
+  }
+
 
   @Test
   @Order(20)
