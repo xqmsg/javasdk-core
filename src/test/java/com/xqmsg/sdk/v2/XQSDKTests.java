@@ -121,7 +121,7 @@ class XQSDKTests {
    * XQ user authorization happens in {@link #testXQAuthorize()}
    */
   @Test
-  @Order(15)
+  @Order(11)
   void testDashboardLogin() throws Exception {
 
     String email = System.getProperty("xqsdk-user.email");
@@ -164,7 +164,7 @@ class XQSDKTests {
    *
    **/
   @Test
-  @Order(16)
+  @Order(12)
   void testDashboardGetApplications() throws Exception {
 
     List apps = GetApplications.with(sdk)
@@ -197,7 +197,7 @@ class XQSDKTests {
    *
    **/
   @Test
-  @Order(17)
+  @Order(13)
   void testDashboardAddUserGroup() throws Exception {
 
 
