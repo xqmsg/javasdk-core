@@ -22,6 +22,7 @@ import com.xqmsg.sdk.v2.services.GrantKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeUserAccess;
 import com.xqmsg.sdk.v2.services.UpdateSettings;
+import com.xqmsg.sdk.v2.services.dashboard.AddUserGroup;
 import com.xqmsg.sdk.v2.services.dashboard.DashboardLogin;
 import com.xqmsg.sdk.v2.services.dashboard.GetApplications;
 import com.xqmsg.sdk.v2.utils.DateTimeFormats;
@@ -39,10 +40,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -192,6 +190,42 @@ class XQSDKTests {
             ).get();
 
     assertNotEquals(0, apps.size());
+
+  }
+
+/**
+   *
+   **/
+  @Test
+  @Order(17)
+  void testDashboardAddUserGroup() throws Exception {
+
+
+    Optional<Map<String, Object>> userGroup =
+            Optional.of(Map.of(AddUserGroup.NAME, "New Test Generated User Group",
+            AddUserGroup.MEMBERS, makeUsers(2).get("ALL")));
+
+    String result = AddUserGroup.with(sdk)
+            .supplyAsync(userGroup)
+            .thenApply(
+                    (ServerResponse serverResponse) -> {
+                      switch (serverResponse.status) {
+                        case Ok: {
+                          var id = serverResponse.payload.get(AddUserGroup.ID);
+                            logger.info(String.format("Group created, Id: %s",id));
+                          return "success";
+                        }
+                        case Error: {
+                          logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                          return "error";
+                        }
+                        default:
+                          throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                      }
+                    }
+            ).get();
+
+    assertEquals("success", result);
 
   }
 
@@ -867,6 +901,14 @@ class XQSDKTests {
     }
     return Logger.getLogger(clazz.getName());
   }
+
+  static Map<String, Object> makeUsers (int limit) {
+    List users = new ArrayList();
+    for (int i = 0; i < limit; i++) {
+      users.add(String.format("test-user-%s@xqmsg.com", Double.valueOf(Math.random() * (1000 - 1) + 1).intValue()));
+    }
+    return Map.of("FIRST",  users.get(0), "ALL", users );
+  };
 
 }
 

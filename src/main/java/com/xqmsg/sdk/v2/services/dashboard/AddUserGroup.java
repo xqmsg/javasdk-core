@@ -10,18 +10,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 /**
- * A service to create a new Contact for the dashboard
+ *
  *
  */
-public class GetApplications extends XQModule {
+public class AddUserGroup extends XQModule {
 
   private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
-  public static final String APPS = "apps";
+    public static String ID = "id";
 
-  private static final String SERVICE_NAME = "devapps";
+    public static String  MEMBERS = "members";
 
-  private GetApplications(XQSDK sdk) {
+    public static String NAME= "name";
+
+    private static final String SERVICE_NAME = "usergroup";
+
+  private AddUserGroup(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
      super.sdk = sdk;
      super.cache = sdk.getCache();
@@ -29,15 +33,15 @@ public class GetApplications extends XQModule {
 
   /**
    * @param sdk App Settings
-   * @returns AddContact
+   * @returns AddUserGroup
    */
-  public static GetApplications with(XQSDK sdk) {
-    return new GetApplications(sdk);
+  public static AddUserGroup with(XQSDK sdk) {
+    return new AddUserGroup(sdk);
   }
 
   @Override
   public List<String> requiredFields() {
-    return List.of();
+    return List.of(NAME);
   }
 
   /**
@@ -55,26 +59,29 @@ public class GetApplications extends XQModule {
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-    return CompletableFuture.completedFuture(
-            authorize
-                    .andThen((dashboardAccessToken) -> {
-                              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", dashboardAccessToken));
-                              return sdk.call(sdk.DASHBOARD_SERVER_URL,
-                                      Optional.of(SERVICE_NAME),
-                                      CallMethod.Get,
-                                      Optional.of(headerProperties),
-                                      Optional.of(Destination.DASHBOARD),
-                                      Optional.empty());
-                            }
-                    ).apply(Optional.of(Destination.DASHBOARD), maybeArgs)
-    )
-    .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+      return CompletableFuture.completedFuture(
+              validate
+                      .andThen((result) ->
+                              authorize
+                                      .andThen((dashboardAccessToken) -> {
+                                          Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", dashboardAccessToken));
+                                          return sdk.call(sdk.DASHBOARD_SERVER_URL,
+                                                  Optional.of(SERVICE_NAME),
+                                                  CallMethod.Post,
+                                                  Optional.of(headerProperties),
+                                                  Optional.of(Destination.DASHBOARD),
+                                                  result);
+                                      })
+                                      .apply(Optional.of(Destination.DASHBOARD), result)
+                      )
+                      .apply(maybeArgs))
+              .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
 
   }
 
   @Override
   public String moduleName() {
-    return "GetApplications";
+    return "AddUserGroup";
   }
 
 }

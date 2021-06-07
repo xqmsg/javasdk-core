@@ -93,7 +93,7 @@ public class DashboardLogin extends XQModule {
 
     @Override
     public String moduleName() {
-        return "Authorize";
+        return "DashboardLogin";
     }
 
 }
