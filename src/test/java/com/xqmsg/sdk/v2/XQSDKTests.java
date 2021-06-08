@@ -309,7 +309,43 @@ class XQSDKTests {
 
     }
 
-  @Test
+    /**
+     *
+     **/
+    @Test
+    @Order(13)
+    void testDashboardAddContact() throws Exception {
+
+        String result = AddContact.with(sdk)
+                .supplyAsync(Optional.of(Map.of(AddContact.EMAIL, makeUsers(1).get("FIRST"),
+                        AddContact.NOTIFICATIONS, Notifications.NONE,
+                        AddContact.ROLE , Roles.Alias.ordinal(),
+                        AddContact.TITLE, "Mr.",
+                        AddContact.FIRST_NAME, "John",
+                        AddContact.LAST_NAME, "Doe")))
+                .thenApply(
+                        (ServerResponse serverResponse) -> {
+                            switch (serverResponse.status) {
+                                case Ok: {
+                                    var id = serverResponse.payload.get(AddContact.ID);
+                                    logger.info(String.format("Caontact created, Id: %s",id));
+                                    return "success";
+                                }
+                                case Error: {
+                                    logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                                    return "error";
+                                }
+                                default:
+                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                            }
+                        }
+                ).get();
+
+        assertEquals("success", result);
+
+    }
+
+    @Test
   @Order(20)
   void testGetUserInfo() throws Exception {
 
