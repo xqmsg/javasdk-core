@@ -313,7 +313,7 @@ class XQSDKTests {
      *
      **/
     @Test
-    @Order(13)
+    @Order(16)
     void testDashboardAddContact() throws Exception {
 
         String result = AddContact.with(sdk)
@@ -337,6 +337,48 @@ class XQSDKTests {
                                 }
                                 default:
                                     throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                            }
+                        }
+                ).get();
+
+        assertEquals("success", result);
+
+    }
+
+
+    /**
+     *
+     **/
+    @Test
+    @Order(15)
+    void testDashboardDisableContact() throws Exception {
+
+        ServerResponse contactsServerResponse = FindContacts.with(sdk)
+                .supplyAsync(Optional.of(Map.of(FindContacts.FILTER, "%"))).get();
+
+        List<Map<String, Object>> contacts = (List<Map<String, Object>>) contactsServerResponse.payload.get(FindContacts.CONTACTS);
+
+        Optional<Map<String, Object>> found = contacts.stream().filter((contact) -> {
+            return "John".equals(contact.get("fn")) &&  "Doe".equals(contact.get("ln"));
+        }).findFirst();
+
+        Map<String, Object> payload = Map.of(FindContacts.ID, found.get().get(FindContacts.ID));
+
+        String result = DisableContact.with(sdk)
+                .supplyAsync(Optional.of(payload))
+                .thenApply(
+                        (ServerResponse removeResponse) -> {
+                            switch (removeResponse.status) {
+                                case Ok: {
+                                    logger.info(String.format("Response Status Code:: %s", removeResponse.status));
+                                    return "success";
+                                }
+                                case Error: {
+                                    logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
+                                    return "error";
+                                }
+                                default:
+                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
                             }
                         }
                 ).get();

@@ -12,19 +12,13 @@ import com.xqmsg.sdk.v2.utils.Destination;
 import com.xqmsg.sdk.v2.utils.XQMsgJSONTypeAdapter;
 
 import javax.net.ssl.HttpsURLConnection;
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.StringReader;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -295,7 +289,7 @@ public class XQSDK {
 
   private String buildQeryParams(Map<String, Object> params) {
     return params.entrySet().stream()
-            .map(p -> p.getKey() + "=" + p.getValue())
+            .map(p -> p.getKey() + "=" + encode((String)p.getValue()))
             .reduce((p1, p2) -> p1 + "&" + p2)
             .orElse("");
   }
@@ -408,5 +402,12 @@ public class XQSDK {
     return cache;
   }
 
+  private String encode(String value) {
+    try {
+      return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+    } catch (UnsupportedEncodingException e) {
+      return null;
+    }
+  }
 
 }
