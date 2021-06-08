@@ -76,8 +76,7 @@ In order to utilize the XQ SDK and interact with XQ servers you will need both t
 
 **_Note: You only need to generate one SDK instance for use across your application._**
 
-#### Encrypting a message
-
+#### Encrypting a message ([Encrypt.java](./src/main/java/com/xqmsg/sdk/v2/services/Encrypt.java))
 The text to be encrypted should be submitted along with the email addresses of the intended recipients, as well as the amount of time that the message should be available.
 
 ```java
@@ -128,7 +127,7 @@ The text to be encrypted should be submitted along with the email addresses of t
 
 ```
 
-#### Decrypting a message
+#### Decrypting a message ([Decrypt.java](./src/main/java/com/xqmsg/sdk/v2/services/Decrypt.java))
 
 To decrypt a message, the encrypted payload must be provided, along with the locator token received from XQ during encryption. The authenticated user must be one of the recipients that the message was originally sent to ( or the sender themselves).
 
@@ -159,7 +158,7 @@ To decrypt a message, the encrypted payload must be provided, along with the loc
      
 ```
 
-#### Encrypting a file
+#### Encrypting a file ([FileEncrypt.java](./src/main/java/com/xqmsg/sdk/v2/services/FileEncrypt.java))
 
 Here, a `File` object containing the data for encryption must be provided. Like message encryption, a list of recipients who will be able to decrypt the file, as well as the amount of time before expiration must also be provided.
 
@@ -197,7 +196,7 @@ Here, a `File` object containing the data for encryption must be provided. Like 
   }
 ```
 
-#### Decrypting a file
+#### Decrypting a file ([FileDecrypt.java](./src/main/java/com/xqmsg/sdk/v2/services/FileDecrypt.java))
 
 To decrypt a file, the URI to the XQ encrypted file must be provided. The user decrypting the file must be one of the recipients original specified ( or the sender ).
 
@@ -225,7 +224,7 @@ Map<String, Object> payload = Map.of(FileDecrypt.SOURCE_FILE_PATH, sourceSpec, F
               }).get();
 ```
 
-#### Authorization
+#### Authorization ([Authorize.java](./src/main/java/com/xqmsg/sdk/v2/services/Authorize.java))
 
 Request a temporary access token (which is cached in the active user profile) for a particular email address.
 If successful, the user will receive an email containing a PIN number and a validation link.
@@ -257,7 +256,7 @@ If successful, the user will receive an email containing a PIN number and a vali
 
 ```
 
-#### Code Validator
+#### Code Validator ([CodeValidator.java](./src/main/java/com/xqmsg/sdk/v2/services/CodeValidator.java))
 
 This service validates that the PIN received in the email is mapped to  same temporary access token that was previously cached.
 If so, the temporary code will be exchanged for a permanent access token which can be used for subsequent activities. This access token is  stored in the user's active profile .
@@ -288,7 +287,7 @@ If so, the temporary code will be exchanged for a permanent access token which c
                       }).get();
 ```
 
-Alternatively, if the user clicks on the link in the email, they can simply exchange their pre-authorization token for a valid access token by using the `ExchangeForAccessToken` class directly. Note that the active user in the `sdk` should be the same as the one used to make the authorization call:
+Alternatively, if the user clicks on the link in the email, they can simply exchange their pre-authorization token for a valid access token by using <b>[ExchangeForAccessToken.java](./src/main/java/com/xqmsg/sdk/v2/services/ExchangeForAccessToken.java)</b> directly. <br>Note that the active user in the `sdk` should be the same as the one used to make the authorization call:
 
 ```java
   ExchangeForAccessToken
@@ -311,7 +310,7 @@ Alternatively, if the user clicks on the link in the email, they can simply exch
             }).get();
 ```
 
-#### Revoking Key Access
+#### Revoking Key Access ([RevokeKeyAccess.java](./src/main/java/com/xqmsg/sdk/v2/services/RevokeKeyAccess.java))
 
 Revokes a key using its token. Only the user who sent the message will be able to revoke it. If successful a 204 status is returned.
 
@@ -338,7 +337,7 @@ Revokes a key using its token. Only the user who sent the message will be able t
 
 ```
 
-#### Granting and Revoking User Access
+#### Granting and Revoking User Access ([GrantUserAccess.java](./src/main/java/com/xqmsg/sdk/v2/services/GrantUserAccess.java))
 
 There may be cases where additional users need to be granted access to a previously sent message, or access needs to be revoked. This can be achieved via **GrantUserAccess** and **RevokeUserAccess** respectively:
 
@@ -366,6 +365,7 @@ GrantUserAccess.with(sdk)
             }).get();
 ```
 
+####  Revoke access from particular users ([RevokeUserAccess.java](./src/main/java/com/xqmsg/sdk/v2/services/RevokeUserAccess.java))
 ```java
 
 // Revoke access from particular users.
@@ -391,7 +391,8 @@ RevokeUserAccess.with(sdk)
               }).get();
 ```
 
-#### Connect to an alias account
+#### Connect to an alias account ([AuthorizeAlias.java](./src/main/java/com/xqmsg/sdk/v2/services/AuthorizeAlias.java))
+
 
 After creation, a user can connect to an Alias account by using the **`AuthorizeAlias`** endpoint:
 
@@ -424,7 +425,7 @@ After creation, a user can connect to an Alias account by using the **`Authorize
 A user has the option of only using XQ for its key management services alone. The necessary steps to do this are detailed below:
 
 
-#### 1. Get quantum entropy ( Optional )
+#### 1. Get quantum entropy ( Optional ) ([FetchQuantumEntropy.java](./src/main/java/com/xqmsg/sdk/v2/quantum/FetchQuantumEntropy.java))
 
 XQ provides a quantum source that can be used to generate entropy for seeding their encryption key:
 
@@ -450,7 +451,7 @@ XQ provides a quantum source that can be used to generate entropy for seeding th
 
 ```
 
-#### 2. Upload The Key
+#### 2. Upload The Key ([UploadKey.java](./src/main/java/com/xqmsg/sdk/v2/services/UploadKey.java))
 
  The encryption key, authorized recipients, as well as any additional metadata is sent to the XQ subscription server. If successful, a signed and encrypted key packet, a.k.a locator token  returned to the user.
 
@@ -482,7 +483,7 @@ Map<String, Object> payload = Map.of(
               }).get();
 ```
 
-#### 3. Retrieve a key from server
+#### 3. Retrieve a key from server ([FetchKey.java](./src/main/java/com/xqmsg/sdk/v2/services/FetchKey.java))
 
 Use the locator token associated with the respective message to retrieve the encryption key. 
 Even with the locator key only users that were previously specified as  recipients can fetch this key.
@@ -516,7 +517,7 @@ a user must be signed into XQ with an authorized email account associated with t
 - [AddUserGroup](#managing-a-user-group)
 - [AddContact](#using-an-external-id-based-contact-for-tracking)
 
-#### Connecting to the Dashboard
+#### Connecting to the Dashboard ([DashboardLogin.java](./src/main/java/com/xqmsg/sdk/v2/services/dashboard/DashboardLogin.java))
 
 ```java
 
@@ -539,7 +540,7 @@ a user must be signed into XQ with an authorized email account associated with t
 
 ```
 
-#### Managing a user group
+#### Managing a user group ([AddUserGroup.java](./src/main/java/com/xqmsg/sdk/v2/services/dashboard/AddUserGroup.java))
 
 Users may group a number of emails accounts under a single alias. Doing this makes it possible to add all of the associated email accounts to an outgoing message by adding that alias as a message recipient instead. Note that changing the group members does not affect the access rights of messages that have previously been sent.
 
@@ -566,7 +567,7 @@ Users may group a number of emails accounts under a single alias. Doing this mak
       
 ```
 
-#### Using an external ID-based contact for tracking
+#### Using an external ID-based contact for tracking ([AddContact.java](./src/main/java/com/xqmsg/sdk/v2/services/dashboard/AddContact.java))
 
 In situations where a user may want to associate an external account with an XQ account for the purposes of encryption and tracking , they can choose to create an account with an **Alias** role.
 
@@ -601,4 +602,4 @@ These type of accounts will allow user authorization using only an account ID. H
 
   A basic disk backed cache implementation utilizing <a href="https://mapdb.org/">MapDB</a> which is used to store access tokens by email address
 
-#####  [SimpleXQCache](./src/main/java/com/xqmsg/sdk/v2/caching/SimpleXQCache.java) 
+#####  [SimpleXQCache.java](./src/main/java/com/xqmsg/sdk/v2/caching/SimpleXQCache.java) 
