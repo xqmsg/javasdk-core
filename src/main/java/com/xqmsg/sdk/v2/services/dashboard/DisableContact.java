@@ -79,7 +79,7 @@ public class DisableContact extends XQModule {
 
   @Override
   public String moduleName() {
-    return "UpdateUserGroup";
+    return "DisableContact";
   }
 
 }

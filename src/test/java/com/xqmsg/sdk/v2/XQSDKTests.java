@@ -42,6 +42,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.xqmsg.sdk.v2.CallStatus.Ok;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -280,32 +281,35 @@ class XQSDKTests {
 
         List<Map<String, Object>> userGroups = (List<Map<String, Object>>) userGroupsServerResponse.payload.get(FindUserGroups.GROUPS);
 
-        Optional<Map<String, Object>> found = userGroups.stream().filter((userGroup) -> {
+        List<Map<String, Object>> groups = userGroups.stream().filter((userGroup) -> {
             return "Updated Test Generated User Group".equals(userGroup.get("name"));
-        }).findFirst();
+        }).collect(Collectors.toList());
 
-        Map<String, Object> payload = Map.of(UpdateUserGroup.ID, found.get().get(FindUserGroups.ID));
-
-        String result = RemoveUserGroup.with(sdk)
-                .supplyAsync(Optional.of(payload))
-                .thenApply(
-                        (ServerResponse removeResponse) -> {
-                            switch (removeResponse.status) {
-                                case Ok: {
-                                    logger.info(String.format("Response Status Code:: %s", removeResponse.status));
-                                    return "success";
+        groups.forEach(group -> {
+            Map<String, Object> payload = Map.of(UpdateUserGroup.ID, group.get(FindUserGroups.ID));
+            String result = null;
+            try {
+                 result = RemoveUserGroup.with(sdk)
+                        .supplyAsync(Optional.of(payload))
+                        .thenApply(
+                                (ServerResponse removeResponse) -> {
+                                    switch (removeResponse.status) {
+                                        case Ok: {
+                                            logger.info(String.format("Response Status Code:: %s", removeResponse.status));
+                                            return "success";
+                                        }
+                                        case Error: {
+                                            logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
+                                            return "error";
+                                        }
+                                        default:
+                                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
+                                    }
                                 }
-                                case Error: {
-                                    logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
-                                    return "error";
-                                }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
-                            }
-                        }
-                ).get();
-
-        assertEquals("success", result);
+                        ).get();
+            }catch (Exception e){}
+            assertEquals("success", result);
+        });
 
     }
 
@@ -384,6 +388,54 @@ class XQSDKTests {
                 ).get();
 
         assertEquals("success", result);
+
+    }
+
+    /**
+     *
+     **/
+    @Test
+    @Order(16)
+    void testDashboardRemoveContact() throws Exception {
+
+        ServerResponse contactsServerResponse = FindContacts.with(sdk)
+                .supplyAsync(Optional.of(Map.of(FindContacts.FILTER, "%"))).get();
+
+        List<Map<String, Object>> contacts = (List<Map<String, Object>>) contactsServerResponse.payload.get(FindContacts.CONTACTS);
+
+        List<Map<String, Object>> candidates = contacts.stream().filter((contact) -> {
+            return "John".equals(contact.get("fn")) &&  "Doe".equals(contact.get("ln"));
+        }).collect(Collectors.toList());
+
+        candidates.forEach(candidate->{
+
+            String result = null;
+            try {
+                Map<String, Object> payload = Map.of(FindContacts.ID, candidate.get(FindContacts.ID));
+
+                result = RemoveContact.with(sdk)
+                        .supplyAsync(Optional.of(payload))
+                        .thenApply(
+                                (ServerResponse removeResponse) -> {
+                                    switch (removeResponse.status) {
+                                        case Ok: {
+                                            logger.info(String.format("Response Status Code:: %s", removeResponse.status));
+                                            return "success";
+                                        }
+                                        case Error: {
+                                            logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
+                                            return "error";
+                                        }
+                                        default:
+                                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
+                                    }
+                                }
+                        ).get();
+            }catch (Exception e){}
+            assertEquals("success", result);
+
+        });
+
 
     }
 

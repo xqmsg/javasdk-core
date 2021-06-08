@@ -80,7 +80,7 @@ public class FindContacts extends XQModule {
 
   @Override
   public String moduleName() {
-    return "FindUserGroups";
+    return "FindContacts";
   }
 
 }

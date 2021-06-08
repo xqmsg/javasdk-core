@@ -13,16 +13,16 @@ import java.util.logging.Logger;
  * A service to edit an existing user group within the dashboard
  *
  */
-public class RemoveUserGroup extends XQModule {
+public class RemoveContact extends XQModule {
 
   private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
 
   public static String  ID= "id";
 
-  private static final String SERVICE_NAME = "usergroup";
+  private static final String SERVICE_NAME = "contact";
 
-  private RemoveUserGroup(XQSDK sdk) {
+  private RemoveContact(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
      super.sdk = sdk;
      super.cache = sdk.getCache();
@@ -32,8 +32,8 @@ public class RemoveUserGroup extends XQModule {
    * @param sdk App Settings
    * @returns RemoveUserGroup
    */
-  public static RemoveUserGroup with(XQSDK sdk) {
-    return new RemoveUserGroup(sdk);
+  public static RemoveContact with(XQSDK sdk) {
+    return new RemoveContact(sdk);
   }
 
   @Override
@@ -62,7 +62,7 @@ public class RemoveUserGroup extends XQModule {
                             authorize
                                     .andThen((dashboardAccessToken) -> {
                                       Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", dashboardAccessToken));
-                                        final String DYNAMIC_SERVICE_NAME = String.format("%s/%s", SERVICE_NAME, validatedArgs.get().get(ID));
+                                        final String DYNAMIC_SERVICE_NAME = String.format("%s/%s?delete=true", SERVICE_NAME, validatedArgs.get().get(ID));
                                         return sdk.call(sdk.DASHBOARD_SERVER_URL,
                                               Optional.of(DYNAMIC_SERVICE_NAME),
                                               CallMethod.Delete,
@@ -79,7 +79,7 @@ public class RemoveUserGroup extends XQModule {
 
   @Override
   public String moduleName() {
-    return "RemoveUserGroup";
+    return "RemoveContact";
   }
 
 }
