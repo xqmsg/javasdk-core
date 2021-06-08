@@ -93,7 +93,7 @@ public class RevokeUserAccess extends XQModule {
 
   @Override
   public String moduleName() {
-    return "RevokeKeyAccess";
+    return "RevokeUserAccess";
   }
 
   private String encode(String value) {

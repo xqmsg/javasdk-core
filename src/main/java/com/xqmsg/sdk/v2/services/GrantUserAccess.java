@@ -20,16 +20,16 @@ import java.util.stream.Collectors;
  * This services grants access for a particular user to a specified key. The
  * person granting access must be the one who owns the key.
  */
-public class GrantKeyAccess extends XQModule {
+public class GrantUserAccess extends XQModule {
 
-  private static final Logger logger = Logger(GrantKeyAccess.class);
+  private static final Logger logger = Logger(GrantUserAccess.class);
 
   public static final String RECIPIENTS = "recipients";
   public static final String LOCATOR_TOKEN = "locatorToken";
 
   private static final String SERVICE_NAME = "grant";
 
-  private GrantKeyAccess(XQSDK sdk) {
+  private GrantUserAccess(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
     super.sdk = sdk;
     super.cache = sdk.getCache();
@@ -45,8 +45,8 @@ public class GrantKeyAccess extends XQModule {
    * @param sdk App Settings
    * @returns this
    */
-  public static GrantKeyAccess with(XQSDK sdk) {
-    return new GrantKeyAccess(sdk);
+  public static GrantUserAccess with(XQSDK sdk) {
+    return new GrantUserAccess(sdk);
   }
 
   /**
@@ -92,7 +92,7 @@ public class GrantKeyAccess extends XQModule {
 
   @Override
   public String moduleName() {
-    return "RevokeKeyAccess";
+    return "GrantUserAccess";
   }
 
   private String encode(String value) {

@@ -2,26 +2,8 @@ package com.xqmsg.sdk.v2;
 
 
 import com.xqmsg.sdk.v2.exceptions.StatusCodeException;
-import com.xqmsg.sdk.v2.services.Authorize;
-import com.xqmsg.sdk.v2.services.AuthorizeAlias;
-import com.xqmsg.sdk.v2.services.AuthorizeDelegate;
-import com.xqmsg.sdk.v2.services.CheckApiKey;
-import com.xqmsg.sdk.v2.services.CheckKeyExpiration;
-import com.xqmsg.sdk.v2.services.CodeValidator;
-import com.xqmsg.sdk.v2.services.CombineAuthorizations;
-import com.xqmsg.sdk.v2.services.Decrypt;
-import com.xqmsg.sdk.v2.services.DeleteAuthorization;
-import com.xqmsg.sdk.v2.services.DeleteSubscriber;
-import com.xqmsg.sdk.v2.services.Encrypt;
-import com.xqmsg.sdk.v2.services.FetchKey;
-import com.xqmsg.sdk.v2.services.FileDecrypt;
-import com.xqmsg.sdk.v2.services.FileEncrypt;
-import com.xqmsg.sdk.v2.services.GetSettings;
-import com.xqmsg.sdk.v2.services.GetUserInfo;
-import com.xqmsg.sdk.v2.services.GrantKeyAccess;
-import com.xqmsg.sdk.v2.services.RevokeKeyAccess;
-import com.xqmsg.sdk.v2.services.RevokeUserAccess;
-import com.xqmsg.sdk.v2.services.UpdateSettings;
+import com.xqmsg.sdk.v2.quantum.FetchQuantumEntropy;
+import com.xqmsg.sdk.v2.services.*;
 import com.xqmsg.sdk.v2.services.dashboard.*;
 import com.xqmsg.sdk.v2.utils.DateTimeFormats;
 import org.joda.time.LocalDateTime;
@@ -35,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -332,7 +315,7 @@ class XQSDKTests {
                             switch (serverResponse.status) {
                                 case Ok: {
                                     var id = serverResponse.payload.get(AddContact.ID);
-                                    logger.info(String.format("Caontact created, Id: %s",id));
+                                    logger.info(String.format("Contact created, Id: %s",id));
                                     return "success";
                                 }
                                 case Error: {
@@ -546,7 +529,7 @@ class XQSDKTests {
   }
 
 
-  @Test
+@Test
   @Order(50)
   void testEncryptDecryptKeyRetrievalRevokeKeyAccessGrantKeyAccessRevokeUserAccess() throws Exception {
 
@@ -613,15 +596,15 @@ class XQSDKTests {
 
     assertEquals("No Content", noContent);
 
-    ServerResponse grantKeyAccessResponse =  GrantKeyAccess
+    ServerResponse grantUserAccessResponse =  GrantUserAccess
             .with(sdk)
             .supplyAsync(Optional.of(Map.of(
-                    GrantKeyAccess.LOCATOR_TOKEN, locatorToken,
-                    GrantKeyAccess.RECIPIENTS, recipients
+                    GrantUserAccess.LOCATOR_TOKEN, locatorToken,
+                    GrantUserAccess.RECIPIENTS, recipients
             )))
             .get();
 
-    assertEquals("No Content", grantKeyAccessResponse.payload.get(ServerResponse.DATA));
+    assertEquals("No Content", grantUserAccessResponse.payload.get(ServerResponse.DATA));
 
     ServerResponse revokeUserAccessResponse = RevokeUserAccess
             .with(sdk)
@@ -858,6 +841,7 @@ class XQSDKTests {
     assertTrue(encryptedFilePath != null);
 
   }
+
 
   @Test
   @Order(110)

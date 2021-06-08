@@ -25,7 +25,12 @@ public class FetchQuantumEntropy extends XQModule {
 
   private static final Logger logger = Logger(FetchQuantumEntropy.class);
 
+  public static String KS = "ks";
+
+  public static String _256 = "256";
+
   private final XQSDK sdk;
+
 
   private FetchQuantumEntropy(XQSDK aSDK) {
     sdk = aSDK;
@@ -58,7 +63,7 @@ public class FetchQuantumEntropy extends XQModule {
               CallMethod.Get,
               Optional.empty(),
               Optional.of(Destination.XQ),
-              Optional.of(Map.of("ks", "256")));
+              Optional.of(maybeArgs.orElse(Map.of(KS, _256))));
     });
   }
 

@@ -6,19 +6,55 @@
 
 A Java Implementation of XQ Message SDK, V.2
 
-## _API Key_ 
 
-##### An API key is required for interaction with the XQ Message services.
+
+## Table of contents
+
+- [Installation](#installation)
+- [Generating API Keys](#api-keys)
+- [Basic Usage](#basic-usage)
+- [Initializing the XQ java SDK](#initializing-the-sdk)
+- [Encrypt](#encrypting-a-message)
+- [Decrypt](#decrypting-a-message)
+- [FileEncrypt](#encrypting-a-file)
+- [FileDecrypt](#decrypting-a-file)
+- [Authorize](#authorization)
+- [CodeValidator](#code-validator)
+- [RevokeKeyAccess](#revoking-key-access)
+- [GrantUserAccess](#granting-and-revoking-user-access)
+- [AuthorizeAlias](#connect-to-an-alias-account)
+- [Dashboard Mangement](#dashboard-management)
+- [Manage Keys Yourself](#manual-key-management)
+---
+
+
+## Installation
+
+
+#### API Keys
+
+In order to utilize the XQ SDK and interact with XQ servers you will need both the **`General`** and **`Dashboard`** API keys. To generate these keys, follow these steps:
+
+1. Go to your [XQ management portal](https://manage.xqmsg.com/applications).
+2. Select or create an application.
+3. Create a **`General`** key for the XQ framework API.
+4. Create a **`Dashboard`** key for the XQ dashboard API.
+
+---
 
   _Once a key has been obtained from XQ Message it must be inserted it into these files:_<br>
   [config.properties](./src/main/resources/config.properties)<br>
   [dev-config.properties](./src/main/resources/dev-config.properties)<br>
   [test-config.properties](./src/test/resources/test-config.properties)<br>
-  _The config property is called_ `com.xq-msg.sdk.v2.api-key`
 
-## _JUnit Tests_ 
+  _The config properties for the API keys are called_
 
-   ##### Debug/RunConfig:
+ 1. com.xq-msg.sdk.v2.xq-api-key
+ 2. com.xq-msg.sdk.v2.dashboard-api-key
+
+#### JUnit Tests
+
+   _Debug/RunConfig:_
 
    Test Kind:   `Class`
      
@@ -26,439 +62,543 @@ A Java Implementation of XQ Message SDK, V.2
     
    VM Options:
 
-   * `-Dmode=test` 
+   * `-Dmode=test` (loads: test/resources/test-config.properties)
 
-    loads: test/resources/test-config.properties
+   * `-Dclear-cache=false|true` (re-use access tokens from previous run or create new ones each time) <br>
+   * `-Dxqsdk-user.email=username@domain-name.com` (validation pins will be sent to this email address)<br>
+   * `-Dxqsdk-user2.email=username@domain-name.com`(an additional email for tests involving `merge tokens`)<br>
+   * `-Dxqsdk-recipients.email=username@domain-name.com` (an additional email, needed for tests involving `recipients`)<br>
 
-   * `-Dclear-cache=false|true`<br>
-      _re-use access tokens from previous run or create new ones each time_
-   * `-Dxqsdk-user.email=username@domain-name.com` <br>
-      _validation pins will be sent to this email address_<br>
-   * `-Dxqsdk-user2.email=username@domain-name.com`<br>
-     _an additional email for tests involving `merge tokens`_<br>
-   * `-Dxqsdk-recipients.email=username@domain-name.com` <br>
-      _an additional email, needed for tests involving `recipients`_<br>
+---
+
+## Basic Usage
+
+
+**_Note: You only need to generate one SDK instance for use across your application._**
+
+#### Encrypting a message
+
+The text to be encrypted should be submitted along with the email addresses of the intended recipients, as well as the amount of time that the message should be available.
+
+```java
+
+    String userEmail = "me@email.com";
+
+    List recipients = List.of("jane@email.com", "jack@email.com");
+
+    final String messageToEncrypt =
+            "The first stanza of Pushkin's Bronze Horseman (Russian):\n" +
+            "На берегу пустынных волн\n" +
+            "Стоял он, дум великих полн,\n" +
+            "И вдаль глядел. Пред ним широко\n" +
+            "Река неслася; бедный чёлн\n" +
+            "По ней стремился одиноко.\n" +
+            "По мшистым, топким берегам\n" +
+            "Чернели избы здесь и там,\n" +
+            "Приют убогого чухонца;\n" +
+            "И лес, неведомый лучам\n" +
+            "В тумане спрятанного солнца,\n" +
+            "Кругом шумел.\n";
+
+
+    Encrypt   
+       .with(sdk, AlgorithmEnum.OTPv2) // Either "OTPv2" or "AES"
+       .supplyAsync(Optional.of(Map.of(Encrypt.USER, userEmail,
+               Encrypt.TEXT, messageToEncrypt,
+               Encrypt.RECIPIENTS, recipients,
+               Encrypt.MESSAGE_EXPIRATION_HOURS, 5)))
+       .thenApply(
+           (ServerResponse response) -> {
+               switch (response.status) {
+                   case Ok: {
+                       String locatorToken = (String) response.payload.get(Encrypt.LOCATOR_KEY);
+                       String encryptedText = (String) response.payload.get(Encrypt.ENCRYPTED_TEXT);
+                       // Store the locator key and encryptted text somehwere
+                       return response;
+                   }
+                   default: {
+                        //Something went wrong
+                       logger.severe(String.format("failed , reason: %s", response.moreInfo()));
+                       return response;
+                   }
+               }
+
+           }
+       ).get();
+
+```
+
+#### Decrypting a message
+
+To decrypt a message, the encrypted payload must be provided, along with the locator token received from XQ during encryption. The authenticated user must be one of the recipients that the message was originally sent to ( or the sender themselves).
+
+```java
+
+      String locatorToken = "";// obtained from a preceding Encrypt call
+      String encryptedText = "";// obtained from a preceding Encrypt call
+
+      ServerResponse decryptResponse = Decrypt
+              .with(sdk, AlgorithmEnum.OTPv2)
+              .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText)))
+              .thenApply(
+                      (ServerResponse response) -> {
+                          switch (response.status) {
+                              case Ok: {
+                                  String decryptedText = (String) response.payload.get(ServerResponse.DATA);
+                                  //Do something with the decrypted text 
+                                  return response;
+                              }
+                              default: {
+                                  //Something went wrong
+                                  logger.severe(String.format("failed , reason: %s", response.moreInfo()));
+                                  return response;
+                              }
+                          }
+
+                      }).get();
+     
+```
+
+#### Encrypting a file
+
+Here, a `File` object containing the data for encryption must be provided. Like message encryption, a list of recipients who will be able to decrypt the file, as well as the amount of time before expiration must also be provided.
+
+```java
+    
+   final Path sourceSpec = Paths.get("path/to/original/file/.txt", "my-original-file"));
+      final Path targetSpec = Paths.get(String.format("path/to/encrypted/file/.txt.xqf", "my-encrypted-file"));
+
+      String userEmail = "me@email.com";
+      List recipients = List.of("jane@email.com", "jack@email.com");
+      Integer expiration = 5;
+
+      Path encryptedFilePath = FileEncrypt.with(sdk, AlgorithmEnum.OTPv2)
+              .supplyAsync(Optional.of(Map.of(FileEncrypt.USER, userEmail,
+                      FileEncrypt.RECIPIENTS, recipients,
+                      FileEncrypt.MESSAGE_EXPIRATION_HOURS, expiration,
+                      FileEncrypt.SOURCE_FILE_PATH, sourceSpec,
+                      FileEncrypt.TARGET_FILE_PATH, targetSpec)))
+              .thenApply((response) -> {
+                  switch (response.status) {
+                      case Ok: {
+                          var encryptFilePath = (Path) response.payload.get(ServerResponse.DATA);
+                          // Do something with the encrypted file
+                          return encryptFilePath;
+                      }
+                      default: {
+                          // Something went wrong
+                          logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                          return null;
+                      }
+
+                  }
+
+              }).get();
+  }
+```
+
+#### Decrypting a file
+
+To decrypt a file, the URI to the XQ encrypted file must be provided. The user decrypting the file must be one of the recipients original specified ( or the sender ).
+
+```java
+
+ final Path sourceSpec = Paths.get(String.format("path/to/encrypted/file/.txt.xqf", "my-encrypted-file"));
+ final Path targetSpec = Paths.get("path/to/decrypted/file/.txt", "my-decrypted-file"));
+
+Map<String, Object> payload = Map.of(FileDecrypt.SOURCE_FILE_PATH, sourceSpec, FileDecrypt.TARGET_FILE_PATH, targetSpec);
+     
+      FileDecrypt.with(sdk, AlgorithmEnum.OTPv2)
+              .supplyAsync(Optional.of(payload))
+              .thenApply((response) -> {
+                  switch (response.status) {
+                      case Ok: {
+                          var decryptFilePath = (Path) response.payload.get(ServerResponse.DATA);
+                          logger.info("Decrypt Filepath: " + decryptFilePath);
+                          return decryptFilePath;
+                      }
+                      default: {
+                          logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                          return null;
+                      }
+                  }
+              }).get();
+```
+
+#### Authorization
+
+Request a temporary access token (which is cached in the active user profile) for a particular email address.
+If successful, the user will receive an email containing a PIN number and a validation link.
+
+
+```java
+   Map<String, Object> payload =
+              Map.of( Authorize.USER, "me@email.com",
+                      Authorize.FIRST_NAME, "John",
+                      Authorize.LAST_NAME, "Doe");
+
+      String accessToken = Authorize
+              .with(sdk)
+              .supplyAsync(Optional.of(payload))
+              .thenApply(
+                      (ServerResponse response) -> {
+                          switch (response.status) {
+                              case Ok: {
+                                    // Success. A pre-authorization token is automatically be cached
+                                    // If you like, you can also retrieve it directly
+                                  return (String) response.payload.get(ServerResponse.DATA);
+                              }
+                              default: {
+                                  logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                                  return null;
+                              }
+                          }
+                      }).get();
+
+```
+
+#### Code Validator
+
+This service validates that the PIN received in the email is mapped to  same temporary access token that was previously cached.
+If so, the temporary code will be exchanged for a permanent access token which can be used for subsequent activities. This access token is  stored in the user's active profile .
+
+```java
+
+       Map<String, Object> payload = 
+           Map.of(CodeValidator.PIN, "the-pin-that-was-mailed-to-you");
+
+      CodeValidator
+              .with(sdk)
+              .supplyAsync(Optional.of(payload))
+              .thenApply(
+                      (ServerResponse response) -> {
+                          switch (response.status) {
+                              case Ok: {
+                                  // Success. The access token is  stored in the user's active profile
+                                  // If you like, you can also retrieve it directly
+                                  return (String) response.payload.get(ServerResponse.DATA);
+                              }
+                              default: {
+                                  //something went wrong
+                                 logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                                  return null;
+                              }
+                          }
+
+                      }).get();
+```
+
+Alternatively, if the user clicks on the link in the email, they can simply exchange their pre-authorization token for a valid access token by using the `ExchangeForAccessToken` class directly. Note that the active user in the `sdk` should be the same as the one used to make the authorization call:
+
+```java
+  ExchangeForAccessToken
+         .with(sdk)
+         .supplyAsync(Optional.empty())
+         .thenApply(
+            (ServerResponse response) -> {
+                switch (response.status) {
+                    case Ok: {
+                       // Success. A new access token is already stored in the user's active profile
+                       // If you like, you can also retrieve it directly
+                       return (String) response.payload.get(ServerResponse.DATA);
+                    }
+                    default: {
+                      //something went wrong
+                      return null;
+                    }
+                }
+
+            }).get();
+```
+
+#### Revoking Key Access
+
+Revokes a key using its token. Only the user who sent the message will be able to revoke it. If successful a 204 status is returned.
+
+**Warning: This action is not reversible.**
+
+```java
+ RevokeKeyAccess
+              .with(sdk)
+              .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, "message_locator_token")))
+              .thenApply(
+                (ServerResponse response) -> {
+                    switch (response.status) {
+                        case Ok: {
+                            // Success. Key was revoked successfully.
+                            String noContent = (String) response.payload.get(ServerResponse.DATA);
+                            return noContent;
+                        }
+                        default: {
+                            // Something went wrong...
+                            return null;
+                        }
+                    }
+                }).get();
+
+```
+
+#### Granting and Revoking User Access
+
+There may be cases where additional users need to be granted access to a previously sent message, or access needs to be revoked. This can be achieved via **GrantUserAccess** and **RevokeUserAccess** respectively:
+
+```java
+
+GrantUserAccess.with(sdk)
+         .supplyAsync(Optional.of(Map.of(
+                 GrantUserAccess.RECIPIENTS, "john@email.com",
+                 GrantUserAccess.LOCATOR_TOKEN, "message_locator_token"
+                 )))
+         .thenApply(
+            (ServerResponse response) -> {
+                switch (response.status) {
+                    case Ok: {
+                        // Success. John will now be able to read that message.
+                        break;
+                    }
+                    default: {
+                        // Something went wrong...
+                        break;
+                    }
+                }
+
+                return response;
+            }).get();
+```
+
+```java
+
+// Revoke access from particular users.
+RevokeUserAccess.with(sdk)
+      .supplyAsync(Optional.of(Map.of(
+              RevokeUserAccess.RECIPIENTS, "jack@email.com",
+              RevokeUserAccess.LOCATOR_TOKEN, "message_locator_token"
+      )))
+      .thenApply(
+              (ServerResponse response) -> {
+                  switch (response.status) {
+                      case Ok: {
+                          // Success - Jack will no longer be able to read that message.
+                          break;
+                      }
+                      default: {
+                          // Something went wrong...
+                          break;
+                      }
+                  }
+
+                  return response;
+              }).get();
+```
+
+#### Connect to an alias account
+
+After creation, a user can connect to an Alias account by using the **`AuthorizeAlias`** endpoint:
+
+```java
+ Map<String, Object> payload = Map.of(Authorize.USER, "an-alias-id");
+
+      AuthorizeAlias
+         .with(sdk)
+         .supplyAsync(Optional.of(payload))
+         .thenApply(
+           (ServerResponse response) -> {
+               switch (response.status) {
+                   case Ok: {
+                       // Success - The alias user was authorized. 
+                       // The alias token is automatically stored as the active profile.
+                       // If you like, you can also retrieve it directly
+                       return (String) response.payload.get(ServerResponse.DATA);
+                   }
+                   default: {
+                       return null;
+                   }
+               }
+           }).get();
+
+```
+
+---
+## Manual key management
+
+A user has the option of only using XQ for its key management services alone. The necessary steps to do this are detailed below:
+
+
+#### 1. Get quantum entropy ( Optional )
+
+XQ provides a quantum source that can be used to generate entropy for seeding their encryption key:
+
+```java
+
+ FetchQuantumEntropy.with(sdk)
+        .supplyAsync(Optional.empty())
+        .thenApply(
+           (ServerResponse response) -> {
+               switch (response.status) {
+                   case Ok: {
+                       String key = (String) response.payload.get(ServerResponse.DATA);
+                        // Do something with the key
+                       return key;
+                   }
+                   default: {
+                       //Something went wrong
+                       logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                       return null;
+                   }
+               }
+          }).get();
+
+```
+
+#### 2. Upload The Key
+
+ The encryption key, authorized recipients, as well as any additional metadata is sent to the XQ subscription server. If successful, a signed and encrypted key packet, a.k.a locator token  returned to the user.
+
+
+```java
+
+Map<String, Object> payload = Map.of(
+              UploadKey.KEY, "THE_ENCRYPTION_KEY",
+              UploadKey.RECIPIENTS, List.of("jane@email.com, jack@email.com"),
+              UploadKey.MESSAGE_EXPIRATION_HOURS, 24,
+              UploadKey.DELETE_ON_RECEIPT, false
+      );
+
+      UploadKey.with(sdk)
+              .supplyAsync(Optional.of(payload))
+              .thenApply((ServerResponse response) -> {
+                  switch (response.status) {
+                      case Ok: {
+                          String locatorToken = (String) response.payload.get(ServerResponse.DATA);
+                          // The packet, a.k.a locator token, is used later on to retrieve the key.
+                          break;
+                      }
+                      default: {
+                          logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                          break;
+                      }
+                  }
+                  return response;
+              }).get();
+```
+
+#### 3. Retrieve a key from server
+
+Use the locator token associated with the respective message to retrieve the encryption key. 
+Even with the locator key only users that were previously specified as  recipients can fetch this key.
+
+```java
+     Map<String, Object> payload = Map.of(FetchKey.LOCATOR_TOKEN, "KEY_LOCATOR_TOKEN");
+
+      FetchKey.with(this.sdk)
+        .supplyAsync(Optional.of(payload))
+        .thenApply((ServerResponse response) -> {
+            switch (response.status) {
+                case Ok: {
+                    String encryptionKey = (String) response.payload.get(ServerResponse.DATA);
+                    // The received key can now be used to decrypt the original message.
+                    return encryptionKey;
+                }
+                default: {
+                    logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                    return null;
+                }
+            }
+        }).get();
+```
+
+---
+## Dashboard Management
+The SDK provides limited functionality for dashboard administration. In order to use any of the services listed in this section
+a user must be signed into XQ with an authorized email account associated with the management portal.
+
+- [DashboardLogin](#connecting-to-the-dashboard)
+- [AddUserGroup](#managing-a-user-group)
+- [AddContact](#using-an-external-id-based-contact-for-tracking)
+
+#### Connecting to the Dashboard
+
+```java
+
+   DashboardLogin.with(sdk)
+        .supplyAsync(Optional.empty())
+        .thenApply((ServerResponse response) -> {
+            switch (response.status) {
+                case Ok: {
+                    // Success. New dashboard access token will be stored
+                    // for the current profile.
+                    String dashboardAccessToken = (String) response.payload.get(ServerResponse.DATA);
+                    return dashboardAccessToken;
+                }
+                default: {
+                    logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                    return null;
+                }
+            }
+        }).get();
+
+```
+
+#### Managing a user group
+
+Users may group a number of emails accounts under a single alias. Doing this makes it possible to add all of the associated email accounts to an outgoing message by adding that alias as a message recipient instead. Note that changing the group members does not affect the access rights of messages that have previously been sent.
+
+```java
+
+ AddUserGroup.with(sdk)
+        .supplyAsync(Optional.of(payload))
+        .thenApply((ServerResponse response) -> {
+            switch (response.status) {
+                case Ok: {
+                    // Success. The new user group was created.
+                    String groupId = (String) response.payload.get(AddUserGroup.ID);
+
+                    // The new group email format is {groupId}@group.local
+                    return groupId;
+                }
+                default: {
+                    logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                    return null;
+                }
+            }
+
+        });
       
-
-------
-## _Services_
-
-​                                                                                             Pre-requisite: API Key 
-​                                                                            (_see above for more API Key informaion_)
-
-An Access Token is required for all secure interactions with the XQ Message services.
-To aquire one depends on interactions with three services.
-
-   #####  GetAccess Token:  [Authorize](./src/main/java/com/xqmsg/sdk/v2/services/Authorize.java) 1/2
-
-    Request an access token for a particular email address.
-    If successful, the user will receive a PIN via email.
-
-| Initialization Argument Name | Type   | Value                   |
-| :-------------------------: | ------ | ------------------------ | 
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type    | Value              | Required | Description                                                  |
-| ---------------------- | ------- | ------------------ | -------- | ------------------------------------------------------------ |
-| user                   | String  | \<user-email>      | √        | email to be validated                                        |
-| firstName              | String  | \<user-first-name> | x        | first name of the user.                                      |
-| lastName               | String  | \<user-last-name>  | x        | last name of the user                                        |
-| newsLetter             | boolean | true\|false        | x        | should the user receive a newsletter                         |
-| notifications          | int     | [0...3]            | x        | 0: No Notifications <br/>1: Receive Usage Reports<br/>2: Receive Tutorials<br />3: Receive Both |
-
-| Response Name | Type     | Value                          |
-| :-----------: | -------- | ------------------------------ |
-|       -       | *String* | *Validation PIN  (via e-mail)* |
-|     data      | String   | <temporary-access-token>       |
-
-
-   #####   GetAccess Token:   [CodeValidator](./src/main/java/com/xqmsg/sdk/v2/services/CodeValidator.java) 2/2
-
-    Usig the PIN that was sent to a users email validate a temporary access token and
-    exchange it for a real token used in all secured XQ Message interactions.
-
-| Initialization Argument Name | Type   | Value                   | 
-| :-------------------------: | ------ | ------------------------ |
-|         xqsdk         | XQSDK | |
-
-
-| Request Argument Name | Type | Value     | Required | Description                                                  |
-| --------------------- | ---- | --------- | -------- | ------------------------------------------------------------ |
-| pin                   | int  | \[0-9]{6} | √        | the access token validation pin <br/>number received via email |
-
-
-| Response Name | Type | Value |
-| ------------- | ---- | ----- |
-| data             | String    | -     |
-
-
-
-------
-_ENCRYPT TEXT_
-
-   #####  [Encrypt](./src/main/java/com/xqmsg/sdk/v2/services/Encrypt.java)
-
-   For encryption supply a piece of textual data  along with  the author's email, one or more emails of  intended<br>   recipients and the  intended life-span of the message.
-
-
-| Initialization Argument Name | Type          | Value          | 
-| :--------------------------: | ------------- | -------------- | 
-|         xqsdk         | XQSDK | |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   | 
-
-
-
-| Request  Argument Name | Type    | Value                  | Required | Description                                                  |
-| ---------------------- | ------- | ---------------------- | -------- | ------------------------------------------------------------ | 
-| user                   | String  | \<user-email>          | √        | The author's email                                           | 
-| recipients             | List    | \<recipient-emails>    | √        | A list of recipients who are allowed to access the key.      | 
-| expires                | int     | \<expiration-duration> | √        | The number of hours that this key will remain valid for. After this time, it will no longer be accessible. |     
-| dor                    | boolean | true\|false            | x        | Delete on Read If this is set to true a recipient will only be able to read a message once. Defaults to false. |      
-
-
-| Response Name      | Type   | Value            |
-| ------------------ | ------ | ---------------- |
-| data/ locatorKey   | String | <locator-key>    |
-| data/encryptedText | String | <encrypted-text> |
-
-------
-
-_DECRYPT TEXT_
-
-   #####  [Decrypt](./src/main/java/com/xqmsg/sdk/v2/services/Decrypt.java)
-
-   For decryption supply a piece of textual data  along with  the locator key you received when encrypting
-
-
-| Initialization Argument Name | Type          | Value          |
-| :--------------------------: | ------------- | -------------- |
-|         xqsdk         | XQSDK | |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   |
-
-
-
-| Request  Argument Name | Type   | Value            | Required | Description                                  | 
-| ---------------------- | ------ | ---------------- | -------- | -------------------------------------------- | 
-| locatorToken           | String | <locator-token>  | √        | The locator token needed to discover the key | 
-| encryptedText          | String | <encrypted-text> | √        | the encrypted textual data                   | 
-
-
-| Response Name | Type          | Value                  |
-| ------------- | ------------- | ---------------------- |
-| data          | DecryptResult | <decrypted-data-bytes> |
-
-
-------
-
-_ENCRYPT FILE_
-
-   #####  [FileEncrypt](./src/main/java/com/xqmsg/sdk/v2/services/FileEncrypt.java)
-
-   For file encryption supply the path to the unencrypted  source document as well as a <br>   path to the target document to contain the encrypted data,  along with the author's email, <br>   one or more emails of  intended  recipients and the life-span of the message.
-
-
-| Initialization Argument Name | Type          | Value          | 
-| :--------------------------: | ------------- | -------------- | 
-|         xqsdk         | XQSDK | |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   | 
-
-
-
-| Request  Argument Name | Type    | Value                       | Required | Description                                                  | 
-| ---------------------- | ------- | --------------------------- | -------- | ------------------------------------------------------------ | 
-| user                   | String  | \<user-email>               | √        | The author's email                                           | 
-| sourceFilePath         | Path    | \<path-to-unencrypted-file> | √        | Path to the document, which is  supposed to be encrypted     | 
-| targetFilePath         | Path    | \<path-to-encrypted-file>   | √        | Path to the document, which supposed to be decrypted         | 
-| recipients             | List    | \<recipient-emails>         | √        | A list of recipients who are allowed to access the key.      | 
-| expires                | int     | \<expiration-duration>      | √        | The number of hours that this key will remain valid for. After this time, it will no longer be accessible. |      
-| dor                    | boolean | true\|false                 | x        | Delete on Read If this is set to true a recipient will only be able to read a message once. Defaults to false. |      
-
-
-| Response Name | Type                           | Value |
-| ------------- | ------------------------------ | ----- |
-| data          | Path  <path-to-encrypted-file> |       |
-
-------
-
-_DECRYPT FILE_
-
-   #####  [FileDecrypt](./src/main/java/com/xqmsg/sdk/v2/services/FileDecrypt.java)
-
-    For file decryption supply the path to the encrypted source document as well as a <br> path to the target document to contain the decryped data.
-
-
-| Initialization Argument Name | Type          | Value          | 
-| :--------------------------: | ------------- | -------------- | 
-|         xqsdk         | XQSDK | |
-|          algorithm           | AlgorithmEnum | <optv2\|aes>   | 
-
-
-
-| Request  Argument Name | Type | Value                       | Required | Description                                              |
-| ---------------------- | ---- | --------------------------- | -------- | -------------------------------------------------------- |
-| sourceFilePath         | Path | \<path-to-encrypted-file>   | √        | Path to the document, which supposed to be decrypted     |
-| targetFilePath         | Path | \<path-to-unencrypted-file> | √        | Path to the document, which is  supposed to be encrypted |
-
-
-
-| Response Name | Type | Value                    |
-| ------------- | ---- | ------------------------ |
-| data          | Path | <path-to-decrypted-file> |
-
-
-------
-
-   #####  [CheckKeyExpiration](./src/main/java/com/xqmsg/sdk/v2/services/CheckKeyExpiration.java)
-
-This service is used to check whether a particular key is expired or not without actually fetching it. 
-
-
-| Initialization Argument Name | Type   | Value          | 
-| :--------------------------: | ------ | -------------- | 
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type   | Value                        | Required | Description                                                  |
-| ---------------------- | ------ | ---------------------------- | -------- | ------------------------------------------------------------ |
-| locatorToken           | String | \<url-encoded-locator token> | √        | A URL encoded version of the key locator token.<br>It is  is needed for key discovery. |
-
-
-| Response  Name | Response  Type | Response  Value | Description                                                  |
-| -------------- | -------------- | --------------- | ------------------------------------------------------------ |
-| expiresOn      | long           | \>=0            | The number of seconds before this token expires.<br> If the token is already expired, this will be zero |
-
-
-------
-
-   #####  [AuthorizeDelegate](./src/main/java/com/xqmsg/sdk/v2/services/AuthorizeDelegate.java)
-
-This service allows a user to create a very short-lived version of their access token in order to access certain services ( such as file encryption/decryption on the XQ website) without having to transmit their main access token.
-
-
-| Initialization Argument Name | Type   | Value          | 
-| :--------------------------: | ------ | -------------- | 
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type | Value | Required | Description |
-| ---------------------- | ---- | ----- | -------- | ----------- |
-| -                      | -    | -     | -        | -           |
-
-
-| Response  Name | Response  Type | Response  Value         | Description |
-| -------------- | -------------- | ----------------------- | ----------- |
-| data           | String         | <delegate-access-token> |             |
-
-
-------
-
-   #####  [RevokeKeyAccess](./src/main/java/com/xqmsg/sdk/v2/services/RevokeKeyAccess.java)
-
-Revokes a key using its token. Only the user who sent the message will be able to revoke it.
-
-
-| Initialization Argument Name | Type   | Value          | 
-| :--------------------------: | ------ | -------------- | 
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type | Value | Required | Description |
-| ---------------------- | ---- | ----- | -------- | ----------- |
-| -                      | -    | -     | -        | -           |
-
-
-| Response  Name | Response  Type | Response  Value | Description |
-| -------------- | -------------- | --------------- | ----------- |
-| -              | -              | -               | -           |
-
-
-------
-
-   #####  [DeleteSubscriber](./src/main/java/com/xqmsg/sdk/v2/services/DeleteSubscriber.java)
-
-Deletes the subscribed user specified by the access token.
-After an account is deleted, the subscriber will be sent an email notifying them of its deletion.
-
-
-| Initialization Argument Name | Type   | Value          | 
-| :--------------------------: | ------ | -------------- | 
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type | Value | Required | Description |
-| ---------------------- | ---- | ----- | -------- | ----------- |
-| -                      | -    | -     | -        | -           |
-
-
-| Response  Name | Response  Type | Response  Value | Description |
-| -------------- | -------------- | --------------- | ----------- |
-| -              | -              | -               | -           |
-
-
-------
-
-   #####  [GetUserInfo](./src/main/java/com/xqmsg/sdk/v2/services/GetUserInfo.java)
-
-Deletes the user specified by the access token.
-After an account is deleted, the subscriber will be sent an email notifying them of its deletion.
-
-
-| Initialization Argument Name | Type   | Value          |
-| :--------------------------: | ------ | -------------- |
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type | Value | Required | Description |
-| ---------------------- | ---- | ----- | -------- | ----------- |
-| -                      | -    | -     | -        | -           |
-
-
-| Response  Name     | Type   | Value     | Description                                                  |
-| ------------------ | ------ | --------- | ------------------------------------------------------------ |
-| id                 | long   | <user-id> | The user ID.                                                 |
-| usr                | String | <user-id> | The users' email address                                     |
-| firstName          | String | <user-id> | The users first name                                         |
-| lastName           | String | <user-id> | The users last name                                          |
-| subscriptionStatus | long   | <user-id> | The user's subscription status                               |
-| starts             | long   | <user-id> | The datetime ( in milliseconds ) when the subscription was activated. |
-| ends               | long   | <user-id> | The datetime ( in milliseconds ) when the subscription will end. |
-
-
-
-
-------
-
-   #####  [GetSettings](./src/main/java/com/xqmsg/sdk/v2/services/GetSettings.java)
-
-Gets the notification and newsletter settings for the current user.
-
-
-| Initialization Argument Name | Type   | Value          |
-| :--------------------------: | ------ | -------------- |
-|         xqsdk         | XQSDK | |   
-
-
-| Request  Argument Name | Type | Value | Required | Description |
-| ---------------------- | ---- | ----- | -------- | ----------- |
-| -                      | -    | -     | -        | -           |
-
-| Response  Name | Type    | Value       | Description                                                  |
-| -------------- | ------- | ----------- | ------------------------------------------------------------ |
-| newsLetter     | boolean | true\|false | Should this user receive newsletters or not? <br>This is only valid for new users, and is ignored if the user already exists. |
-| notifications  | Long    | [ 0 .. 3 ]  | Specifies the notifications that the user should receive  <br> 0 = No Notifications, <br> 1 = Receive Usage Reports, <br> 2 = Receive Tutorials, <br> 3 = Receive Both |
-
-------
-
-   #####  [CombineAuthorizations](./src/main/java/com/xqmsg/sdk/v2/services/CombineAuthorizations.java)
-
-This endpoint is useful for merging two or more valid access tokens ( along with the access token used to make the call ) into a single one that can be used for temporary read access.
-
-This is useful in situations where a user who has authenticated with multiple accounts wants to get a key for a particular message without needing to know exactly which of their accounts is a valid recipient. As long as one of the accounts in the merged token have access, they will be able to get the key
-
-The merged token has three restrictions:
-
-1. It cannot be used to send messages
-2. It can only be created from other valid access tokens.
-3. It is only valid for a short amount of time.
-
-
-| Initialization Argument Name | Type   | Value          | 
-| :--------------------------: | ------ | -------------- | 
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type | Value                 | Required | Description                  |
-| ---------------------- | ---- | --------------------- | -------- | ---------------------------- |
-| tokens                 | List | (<token-string>,...)+ | √        | The list of tokens to merge. |
-
-| Response  Name | Type   | Value          | Description                                                  |
-| -------------- | ------ | -------------- | ------------------------------------------------------------ |
-| token          | String | <merged-token> | The merged token.                                            |
-| merged         | Long   | [ 0 -9 ]+      | The number of tokens that were successfully merged into the token. |
-
-
-------
-
-   #####  [FetchKey](./src/main/java/com/xqmsg/sdk/v2/services/FetchKey.java)
-
-This endpoint fetches the encryption key associated with the token provided.
-The key will only be returned if the following hold true:
-
- * The access token of the requesting user is valid and unexpired.
-
- * The expiration time specified for the key has not elapsed.
-
- * The person requesting the key was listed as a valid recipient by the sender.
-
- * The key is either not geofenced, or is being accessed from an authorized location.
-
-If any of these is not true, an error will be returned instead.
-
-
-| Initialization Argument Name | Type   | Value          | 
-| :--------------------------: | ------ | -------------- | 
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type   | Value           | Required | Description                                                  |
-| ---------------------- | ------ | --------------- | -------- | ------------------------------------------------------------ |
-| locatorToken           | String | <locator-token> | √        | Thr key locator token ( the token received after adding a key packet). It is used as a URL to discover the key on  the server.<br />The URL encoding part is handled internally in the service itself |
-
-| Response  Name | Type   | Value | Description                                 |
-| -------------- | ------ | ----- | ------------------------------------------- |
-| data           | String | <key> | The Encryption Key obtained from the server |
-
-------
-
-   #####  [RevokeKeyAccess](./src/main/java/com/xqmsg/sdk/v2/services/RevokeKeyAccess.java)
-
-Revokes a key using its token. 
-
-Only the user who sent the message will be able to revoke it.
-
-
-| Initialization Argument Name | Type   | Value          |
-| :--------------------------: | ------ | -------------- |
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type   | Value           | Required | Description                                                  |
-| ---------------------- | ------ | --------------- | -------- | ------------------------------------------------------------ |
-| locatorToken           | String | <locator-token> | √        | Thr key locator token ( the token received after adding a key packet). It is used as a URL to discover the key on  the server.<br />The URL encoding part is handled internally in the service itself |
-
-| Response  Name | Type | Value | Description |
-| -------------- | ---- | ----- | ----------- |
-| -              | -    | -     | -           |
-
-------
-
-   #####  [UpdateSettings](./src/main/java/com/xqmsg/sdk/v2/services/UpdateSettings.java)
-
-Revokes a key using its token. 
-
-Only the user who sent the message will be able to revoke it.
-
-
-| Initialization Argument Name | Type   | Value          |
-| :--------------------------: | ------ | -------------- |
-|         xqsdk         | XQSDK | |
-
-
-| Request  Argument Name | Type    | Value       | Description                                                  |
-| ---------------------- | ------- | ----------- | ------------------------------------------------------------ |
-| newsLetter             | boolean | true\|false | Should this user receive newsletters or not? <br>This is only valid for new users, and is ignored if the user already exists. |
-| notifications          | Long    | [ 0 .. 3 ]  | Specifies the notifications that the user should receive  <br> 0 = No Notifications, <br> 1 = Receive Usage Reports, <br> 2 = Receive Tutorials, <br> 3 = Receive Both |
-
-| Response  Name | Type | Value | Description |
-| -------------- | ---- | ----- | ----------- |
-| -              | -    | -     | -           |
-
-------
-
-  
+```
+
+#### Using an external ID-based contact for tracking
+
+In situations where a user may want to associate an external account with an XQ account for the purposes of encryption and tracking , they can choose to create an account with an **Alias** role.
+
+These type of accounts will allow user authorization using only an account ID. However, these accounts have similar restrictions to anonymous accounts: They will be incapable of account management, and also have no access to the dashboard. However - unlike basic anonymous accounts - they can be fully tracked in a dashboard portal.
+
+```java
+  Map<String, Object> payload = Map.of(AddContact.EMAIL, "john@email.com",
+                                      AddContact.NOTIFICATIONS, Notifications.NONE,
+                                      AddContact.ROLE, Roles.Alias.ordinal(),
+                                      AddContact.TITLE, "Mr.",
+                                      AddContact.FIRST_NAME, "John",
+                                      AddContact.LAST_NAME, "Doe");
+      AddContact.with(sdk)
+        .supplyAsync(Optional.of(payload))
+        .thenApply(
+                (ServerResponse serverResponse) -> {
+                    switch (serverResponse.status) {
+                        case Ok: {
+                            var contactId = serverResponse.payload.get(AddContact.ID);
+                            return contactId;
+                        }
+                        default: {
+                            logger.info(String.format("failed , reason: %s", serverResponse.moreInfo()));
+                            return null;
+                        }
+                    }
+                }
+        ).get();
+
+```
   ## _Cache_
-  
+
   A basic disk backed cache implementation utilizing <a href="https://mapdb.org/">MapDB</a> which is used to store access tokens by email address
-  
+
 #####  [SimpleXQCache](./src/main/java/com/xqmsg/sdk/v2/caching/SimpleXQCache.java) 

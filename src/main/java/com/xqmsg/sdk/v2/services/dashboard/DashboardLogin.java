@@ -67,7 +67,7 @@ public class DashboardLogin extends XQModule {
                                             Optional.of(Destination.DASHBOARD),
                                             Optional.of((Map.of("request", "sub"))));
                                 }
-                        ).apply(Optional.of(Destination.DASHBOARD), maybeArgs)
+                        ).apply(Optional.of(Destination.XQ), maybeArgs)
         )
                 .thenApply((ServerResponse serverResponse) -> {
                     switch (serverResponse.status) {
