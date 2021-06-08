@@ -10,18 +10,19 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 /**
- * A service to create a new Contact for the dashboard
+ *
  *
  */
-public class GetApplications extends XQModule {
+public class FindUserGroups extends XQModule {
 
   private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
-  public static final String APPS = "apps";
+  public static final String GROUPS = "groups";
+  public static final String ID = "id";
 
-  private static final String SERVICE_NAME = "devapps";
+  private static final String SERVICE_NAME = "usergroup";
 
-  private GetApplications(XQSDK sdk) {
+  private FindUserGroups(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
      super.sdk = sdk;
      super.cache = sdk.getCache();
@@ -29,10 +30,10 @@ public class GetApplications extends XQModule {
 
   /**
    * @param sdk App Settings
-   * @returns AddContact
+   * @returns FindUserGroups
    */
-  public static GetApplications with(XQSDK sdk) {
-    return new GetApplications(sdk);
+  public static FindUserGroups with(XQSDK sdk) {
+    return new FindUserGroups(sdk);
   }
 
   @Override
@@ -74,7 +75,7 @@ public class GetApplications extends XQModule {
 
   @Override
   public String moduleName() {
-    return "GetApplications";
+    return "FindUserGroups";
   }
 
 }

@@ -92,7 +92,7 @@ public class AddContact extends XQModule {
                                     .apply(Optional.of(Destination.DASHBOARD), result)
                     )
                     .apply(maybeArgs))
-            .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+            .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getMessage()));
 
   }
 

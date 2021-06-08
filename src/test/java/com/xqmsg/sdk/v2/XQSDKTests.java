@@ -22,9 +22,7 @@ import com.xqmsg.sdk.v2.services.GrantKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeKeyAccess;
 import com.xqmsg.sdk.v2.services.RevokeUserAccess;
 import com.xqmsg.sdk.v2.services.UpdateSettings;
-import com.xqmsg.sdk.v2.services.dashboard.AddUserGroup;
-import com.xqmsg.sdk.v2.services.dashboard.DashboardLogin;
-import com.xqmsg.sdk.v2.services.dashboard.GetApplications;
+import com.xqmsg.sdk.v2.services.dashboard.*;
 import com.xqmsg.sdk.v2.utils.DateTimeFormats;
 import org.joda.time.LocalDateTime;
 import org.joda.time.Period;
@@ -193,20 +191,16 @@ class XQSDKTests {
 
   }
 
-/**
+  /**
    *
    **/
   @Test
   @Order(13)
   void testDashboardAddUserGroup() throws Exception {
 
-
-    Optional<Map<String, Object>> userGroup =
-            Optional.of(Map.of(AddUserGroup.NAME, "New Test Generated User Group",
-            AddUserGroup.MEMBERS, makeUsers(2).get("ALL")));
-
     String result = AddUserGroup.with(sdk)
-            .supplyAsync(userGroup)
+            .supplyAsync(Optional.of(Map.of(AddUserGroup.NAME, "New Test Generated User Group",
+                                            AddUserGroup.MEMBERS, makeUsers(2).get("ALL"))))
             .thenApply(
                     (ServerResponse serverResponse) -> {
                       switch (serverResponse.status) {
@@ -226,6 +220,50 @@ class XQSDKTests {
             ).get();
 
     assertEquals("success", result);
+
+  }
+ /**
+   *
+   **/
+  @Test
+  @Order(14)
+  void testDashboardUpdateUserGroup() throws Exception {
+
+
+      ServerResponse userGroupsServerResponse = FindUserGroups.with(sdk)
+              .supplyAsync(Optional.of(Map.of(FindUserGroups.ID, "[0-9]+"))).get();
+
+      List<Map<String, Object>> userGroups = (List<Map<String, Object>>) userGroupsServerResponse.payload.get(FindUserGroups.GROUPS);
+
+      Optional<Map<String, Object>> found = userGroups.stream().filter((userGroup) -> {
+          return "New Test Generated User Group".equals(userGroup.get("name"));
+      }).findFirst();
+
+      Map<String, Object> payload = Map.of(
+              UpdateUserGroup.ID, found.get().get(FindUserGroups.ID),
+              UpdateUserGroup.NAME, "Updated Test Generated User Group",
+              UpdateUserGroup.MEMBERS, makeUsers(3).get("ALL"));
+
+      String result = UpdateUserGroup.with(sdk)
+              .supplyAsync(Optional.of(payload))
+              .thenApply(
+                      (ServerResponse updateResponse) -> {
+                          switch (updateResponse.status) {
+                              case Ok: {
+                                  logger.info(String.format("Response Status Code:: %s", updateResponse.status));
+                                  return "success";
+                              }
+                              case Error: {
+                                  logger.severe(String.format("failed , reason: %s", updateResponse.moreInfo()));
+                                  return "error";
+                              }
+                              default:
+                                  throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", updateResponse.status));
+                          }
+                      }
+              ).get();
+
+      assertEquals("success", result);
 
   }
 
