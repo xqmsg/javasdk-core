@@ -132,8 +132,21 @@ public class XQSDK {
           break;
         }
       }
-      httpsConnection.setRequestMethod(callMethod.name().toUpperCase());
-      httpsConnection.setDoOutput(true);
+
+    switch (callMethod) {
+      case Patch:
+      case Post: {
+        httpsConnection.setRequestMethod(CallMethod.Post.name().toUpperCase());
+        break;
+      }
+      default: {
+        httpsConnection.setRequestMethod(callMethod.name().toUpperCase());
+        break;
+      }
+    }
+
+
+    httpsConnection.setDoOutput(true);
 
     try {
 

@@ -222,6 +222,7 @@ class XQSDKTests {
     assertEquals("success", result);
 
   }
+
  /**
    *
    **/
@@ -267,6 +268,46 @@ class XQSDKTests {
 
   }
 
+    /**
+     *
+     **/
+    @Test
+    @Order(15)
+    void testDashboardRemoveUserGroup() throws Exception {
+
+        ServerResponse userGroupsServerResponse = FindUserGroups.with(sdk)
+                .supplyAsync(Optional.of(Map.of(FindUserGroups.ID, "[0-9]+"))).get();
+
+        List<Map<String, Object>> userGroups = (List<Map<String, Object>>) userGroupsServerResponse.payload.get(FindUserGroups.GROUPS);
+
+        Optional<Map<String, Object>> found = userGroups.stream().filter((userGroup) -> {
+            return "Updated Test Generated User Group".equals(userGroup.get("name"));
+        }).findFirst();
+
+        Map<String, Object> payload = Map.of(UpdateUserGroup.ID, found.get().get(FindUserGroups.ID));
+
+        String result = RemoveUserGroup.with(sdk)
+                .supplyAsync(Optional.of(payload))
+                .thenApply(
+                        (ServerResponse removeResponse) -> {
+                            switch (removeResponse.status) {
+                                case Ok: {
+                                    logger.info(String.format("Response Status Code:: %s", removeResponse.status));
+                                    return "success";
+                                }
+                                case Error: {
+                                    logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
+                                    return "error";
+                                }
+                                default:
+                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
+                            }
+                        }
+                ).get();
+
+        assertEquals("success", result);
+
+    }
 
   @Test
   @Order(20)

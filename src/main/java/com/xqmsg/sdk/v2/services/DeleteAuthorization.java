@@ -54,7 +54,7 @@ public class DeleteAuthorization extends XQModule {
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
     return CompletableFuture.completedFuture(
-            validate.andThen((result) ->
+            validate.andThen((validatedArgs) ->
                     authorize.andThen(
                             (authorizationToken) -> {
                               Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
@@ -63,7 +63,7 @@ public class DeleteAuthorization extends XQModule {
                                                                        CallMethod.Delete,
                                                                        Optional.of(headerProperties),
                                                                        Optional.of(Destination.XQ),
-                                                                       maybeArgs);
+                                      validatedArgs);
 
                               switch (deleteResponse.status) {
                                 case Ok: {
@@ -78,7 +78,7 @@ public class DeleteAuthorization extends XQModule {
                                   return deleteResponse;
                                 }
                               }
-                            }).apply(Optional.of(Destination.XQ), result)
+                            }).apply(Optional.of(Destination.XQ), validatedArgs)
             ).apply(maybeArgs));
 
   }

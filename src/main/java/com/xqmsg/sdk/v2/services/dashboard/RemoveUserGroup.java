@@ -13,18 +13,16 @@ import java.util.logging.Logger;
  * A service to edit an existing user group within the dashboard
  *
  */
-public class UpdateUserGroup extends XQModule {
+public class RemoveUserGroup extends XQModule {
 
   private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
 
   public static String  ID= "id";
-  public static String MEMBERS = "members";
-  public static String  NAME = "name";
 
   private static final String SERVICE_NAME = "usergroup";
 
-  private UpdateUserGroup(XQSDK sdk) {
+  private RemoveUserGroup(XQSDK sdk) {
     assert sdk != null : "An instance of the XQSDK is required";
      super.sdk = sdk;
      super.cache = sdk.getCache();
@@ -32,10 +30,10 @@ public class UpdateUserGroup extends XQModule {
 
   /**
    * @param sdk App Settings
-   * @returns FindUserGroups
+   * @returns RemoveUserGroup
    */
-  public static UpdateUserGroup with(XQSDK sdk) {
-    return new UpdateUserGroup(sdk);
+  public static RemoveUserGroup with(XQSDK sdk) {
+    return new RemoveUserGroup(sdk);
   }
 
   @Override
@@ -64,12 +62,13 @@ public class UpdateUserGroup extends XQModule {
                             authorize
                                     .andThen((dashboardAccessToken) -> {
                                       Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", dashboardAccessToken));
-                                      return sdk.call(sdk.DASHBOARD_SERVER_URL,
-                                              Optional.of(SERVICE_NAME),
-                                              CallMethod.Patch,
+                                        final String DYNAMIC_SERVICE_NAME = String.format("%s/%s", SERVICE_NAME, validatedArgs.get().get(ID));
+                                        return sdk.call(sdk.DASHBOARD_SERVER_URL,
+                                              Optional.of(DYNAMIC_SERVICE_NAME),
+                                              CallMethod.Delete,
                                               Optional.of(headerProperties),
                                               Optional.of(Destination.DASHBOARD),
-                                              validatedArgs);
+                                              Optional.empty());
                                     })
                                     .apply(Optional.of(Destination.DASHBOARD), validatedArgs)
                     )
