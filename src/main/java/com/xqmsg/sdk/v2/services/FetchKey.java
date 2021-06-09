@@ -83,7 +83,7 @@ public class FetchKey extends XQModule {
                               switch (serverResponse.status) {
                                 case Ok: {
                                   String key = (String) serverResponse.payload.get(ServerResponse.DATA);
-                                  key = key.substring(2);
+                                  if (key.startsWith(".")) key = key.substring(2);
                                   return new ServerResponse(CallStatus.Ok, Map.of(ServerResponse.DATA, key));
                                 }
                                 case Error:
