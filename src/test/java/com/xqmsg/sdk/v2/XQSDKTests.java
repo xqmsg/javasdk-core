@@ -104,6 +104,7 @@ class XQSDKTests {
      */
     @Test
     @Order(11)
+    //@Disabled
     void testDashboardLogin() throws Exception {
 
         String email = System.getProperty("xqsdk-user.email");
@@ -126,12 +127,10 @@ class XQSDKTests {
                                         logger.info(String.format("Dashboard Access Token: %s", accessToken));
                                         return "success";
                                     }
-                                    case Error: {
+                                    default: {
                                         logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
                                         return "error";
                                     }
-                                    default:
-                                        throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
                                 }
                             }
                     ).get();
@@ -147,6 +146,7 @@ class XQSDKTests {
      **/
     @Test
     @Order(12)
+    //@Disabled
     void testDashboardGetApplications() throws Exception {
 
         List apps = GetApplications.with(sdk)
@@ -161,12 +161,10 @@ class XQSDKTests {
                                     });
                                     return applications;
                                 }
-                                case Error: {
+                                default: {
                                     logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
                                     return List.of();
                                 }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
                             }
                         }
                 ).get();
@@ -180,6 +178,7 @@ class XQSDKTests {
      **/
     @Test
     @Order(13)
+    //@Disabled
     void testDashboardAddUserGroup() throws Exception {
 
         String result = AddUserGroup.with(sdk)
@@ -193,12 +192,11 @@ class XQSDKTests {
                                     logger.info(String.format("Group created, Id: %s", id));
                                     return "success";
                                 }
-                                case Error: {
+                                default: {
                                     logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
                                     return "error";
                                 }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                                    
                             }
                         }
                 ).get();
@@ -212,6 +210,7 @@ class XQSDKTests {
      **/
     @Test
     @Order(14)
+    //@Disabled
     void testDashboardUpdateUserGroup() throws Exception {
 
 
@@ -238,12 +237,10 @@ class XQSDKTests {
                                     logger.info(String.format("Response Status Code:: %s", updateResponse.status));
                                     return "success";
                                 }
-                                case Error: {
+                                default: {
                                     logger.severe(String.format("failed , reason: %s", updateResponse.moreInfo()));
                                     return "error";
                                 }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", updateResponse.status));
                             }
                         }
                 ).get();
@@ -257,6 +254,7 @@ class XQSDKTests {
      **/
     @Test
     @Order(15)
+    //@Disabled
     void testDashboardRemoveUserGroup() throws Exception {
 
         ServerResponse userGroupsServerResponse = FindUserGroups.with(sdk)
@@ -281,12 +279,11 @@ class XQSDKTests {
                                             logger.info(String.format("Response Status Code:: %s", removeResponse.status));
                                             return "success";
                                         }
-                                        case Error: {
+                                        default: {
                                             logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
                                             return "error";
                                         }
-                                        default:
-                                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
+
                                     }
                                 }
                         ).get();
@@ -302,6 +299,7 @@ class XQSDKTests {
      **/
     @Test
     @Order(16)
+    //@Disabled
     void testDashboardAddContact() throws Exception {
 
         String result = AddContact.with(sdk)
@@ -319,12 +317,11 @@ class XQSDKTests {
                                     logger.info(String.format("Contact created, Id: %s", id));
                                     return "success";
                                 }
-                                case Error: {
+                                default: {
                                     logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
                                     return "error";
                                 }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+
                             }
                         }
                 ).get();
@@ -339,6 +336,7 @@ class XQSDKTests {
      **/
     @Test
     @Order(15)
+    //@Disabled
     void testDashboardDisableContact() throws Exception {
 
         ServerResponse contactsServerResponse = FindContacts.with(sdk)
@@ -361,12 +359,10 @@ class XQSDKTests {
                                     logger.info(String.format("Response Status Code:: %s", removeResponse.status));
                                     return "success";
                                 }
-                                case Error: {
+                                default: {
                                     logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
                                     return "error";
                                 }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
                             }
                         }
                 ).get();
@@ -380,6 +376,7 @@ class XQSDKTests {
      **/
     @Test
     @Order(16)
+    //@Disabled
     void testDashboardRemoveContact() throws Exception {
 
         ServerResponse contactsServerResponse = FindContacts.with(sdk)
@@ -406,12 +403,11 @@ class XQSDKTests {
                                             logger.info(String.format("Response Status Code:: %s", removeResponse.status));
                                             return "success";
                                         }
-                                        case Error: {
+                                        default: {
                                             logger.severe(String.format("failed , reason: %s", removeResponse.moreInfo()));
                                             return "error";
                                         }
-                                        default:
-                                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", removeResponse.status));
+                                        
                                     }
                                 }
                         ).get();
@@ -426,6 +422,7 @@ class XQSDKTests {
 
     @Test
     @Order(20)
+    //@Disabled
     void testGetUserInfo() throws Exception {
 
         GetUserInfo.with(sdk)
@@ -469,6 +466,7 @@ class XQSDKTests {
 
     @Test
     @Order(30)
+    //@Disabled
     void testGetUserSettings() throws Exception {
 
         GetSettings.with(sdk)
@@ -492,7 +490,7 @@ class XQSDKTests {
                         }
                         default:
                             fail();
-                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+                            
                     }
 
                 }).get();
@@ -501,6 +499,7 @@ class XQSDKTests {
 
     @Test
     @Order(40)
+    //@Disabled
     void testUpdateUserSettings() throws Exception {
 
 
@@ -533,6 +532,7 @@ class XQSDKTests {
 
     @Test
     @Order(50)
+    //@Disabled
     void testEncryptDecryptKeyRetrievalRevokeKeyAccessGrantKeyAccessRevokeUserAccess() throws Exception {
 
         String email = System.getProperty("xqsdk-user.email");
@@ -631,6 +631,7 @@ class XQSDKTests {
      */
     @Test
     @Order(60)
+    //@Disabled
     void testMergeTokens() throws Exception {
 
         String email1 = System.getProperty("xqsdk-user.email");
@@ -667,12 +668,11 @@ class XQSDKTests {
                                     logger.info(String.format("Number of tokens combined: %s", mergeCount));
                                     return combined;
                                 }
-                                case Error: {
+                                default: {
                                     logger.severe(String.format("failed , reason: %s", serverResponse.moreInfo()));
                                     return "";
                                 }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+
                             }
                         }
                 ).get();
@@ -686,6 +686,7 @@ class XQSDKTests {
 
     @Test
     @Order(70)
+    //@Disabled
     void testAuthorizeDelegate() throws Exception {
 
         String delegateAccessToken =
@@ -741,14 +742,12 @@ class XQSDKTests {
                             var encryptFilePathResult = (Path) serverResponse.payload.get(ServerResponse.DATA);
                             return encryptFilePathResult;
                         }
-                        case Error: {
+                        default: {
                             logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
                             fail();
                             return null;
                         }
-                        default:
-                            fail();
-                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+
                     }
 
                 }).get();
@@ -829,14 +828,12 @@ class XQSDKTests {
                             var encryptFilePathResult = (Path) serverResponse.payload.get(ServerResponse.DATA);
                             return encryptFilePathResult;
                         }
-                        case Error: {
+                        default: {
                             logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
                             fail();
                             return null;
                         }
-                        default:
-                            fail();
-                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
+
                     }
 
                 }).get();
@@ -896,7 +893,7 @@ class XQSDKTests {
     @Disabled
     void testAuthorizeAlias() throws Exception {
 
-        String email = System.getProperty("xqsdk-user.email");
+        String email = System.getProperty("xqsdk-alias-user");
 
         Map<String, Object> payload =
                 Map.of(Authorize.USER, email,
@@ -926,7 +923,7 @@ class XQSDKTests {
 
     @Test
     @Order(130)
-    @Disabled
+    //@Disabled
     void testCheckApiKey() throws Exception {
 
         List<String> scopes = CheckApiKey.with(sdk)
@@ -939,7 +936,7 @@ class XQSDKTests {
                                     return (List<String>) payload.get(CheckApiKey.SCOPES);
                                 }
                                 default: {
-                                    logger.warning(String.format("`testAuthorizeAlias` failed , reason: %s", apiKeyCheckResponse.moreInfo()));
+                                    logger.warning(String.format("`testCheckApiKey` failed , reason: %s", apiKeyCheckResponse.moreInfo()));
                                     return null;
                                 }
                             }
@@ -971,14 +968,11 @@ class XQSDKTests {
                             logger.info("Data: " + noContent);
                             break;
                         }
-                        case Error: {
+                        default: {
                             logger.warning(String.format("failed , reason: %s", serverResponse.moreInfo()));
                             fail();
                             break;
                         }
-                        default:
-                            fail();
-                            throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", serverResponse.status));
                     }
 
                 }).get();
@@ -1067,13 +1061,11 @@ class XQSDKTests {
                                             .with(sdk)
                                             .supplyAsync(Optional.of(Map.of(CodeValidator.PIN, pin)));
                                 }
-                                case Error: {
+                                default: {
                                     logger.warning(String.format("`testUserAccessRequest` failed at authorization stage, reason: %s", authorizationResponse.moreInfo()));
                                     fail();
                                     return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.EncryptionFailed, authorizationResponse.moreInfo()));
                                 }
-                                default:
-                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", authorizationResponse.status));
                             }
                         }
                 ).thenApply(
