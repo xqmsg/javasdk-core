@@ -168,8 +168,8 @@ Here, a `File` object containing the data for encryption must be provided. Like 
 
 ```java
     
-   final Path sourceSpec = Paths.get("path/to/original/file/.txt", "my-original-file"));
-      final Path targetSpec = Paths.get(String.format("path/to/encrypted/file/.txt.xqf", "my-encrypted-file"));
+      final Path sourceSpec = Paths.get("path/to/original/file/my-original-file.txt"));
+      final Path targetSpec = Paths.get("path/to/encrypted/file/my-encrypted-file.txt.xqf));
 
       String userEmail = "me@email.com";
       List recipients = List.of("jane@email.com", "jack@email.com");
@@ -208,8 +208,8 @@ To decrypt a file, the URI to the XQ encrypted file must be provided. The user d
 
 ```java
 
- final Path sourceSpec = Paths.get(String.format("path/to/encrypted/file/.txt.xqf", "my-encrypted-file"));
- final Path targetSpec = Paths.get("path/to/decrypted/file/.txt", "my-decrypted-file"));
+ final Path sourceSpec = Paths.get(String.format("path/to/encrypted/file/my-encrypted-file.txt.xqf"));
+ final Path targetSpec = Paths.get("path/to/decrypted/file/my-decrypted-file.txt"));
 
 Map<String, Object> payload = Map.of(FileDecrypt.SOURCE_FILE_PATH, sourceSpec, FileDecrypt.TARGET_FILE_PATH, targetSpec);
      
