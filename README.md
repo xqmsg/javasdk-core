@@ -65,6 +65,7 @@ In order to utilize the XQ SDK and interact with XQ servers you will need both t
 
    * `-Dclear-cache=false|true` (re-use access tokens from previous run or create new ones each time) <br>
    * `-Dxqsdk-user.email=username@domain-name.com` (validation pins will be sent to this email address)<br>
+   * `-Dxqsdk-alias-user=123456790`(test alias id)<br>
    * `-Dxqsdk-user2.email=username@domain-name.com`(an additional email for tests involving `merge tokens`)<br>
    * `-Dxqsdk-recipients.email=username@domain-name.com` (an additional email, needed for tests involving `recipients`)<br>
 
