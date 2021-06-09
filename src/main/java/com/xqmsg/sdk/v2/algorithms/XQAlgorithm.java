@@ -18,56 +18,59 @@ public interface XQAlgorithm {
   String ENCODED_STRING = "encoded";
   String EXPANDED_KEY = "expandedKey";
 
-  /// Returns the full name of the algorithm for displaying in lists.
+    /**
+     *  Returns the full name of the algorithm for displaying in lists.
+     *
+     */
   String name();
 
-  /// Identifying Prefix
-  ///
-  /// All algorithms other than AES will prefix their key with a value (e.g. "X" for OTP). That prefix should be stated here.
+    /**
+     * Identifying Prefix
+     * <p>
+     * All algorithms other than AES will prefix their key with a value (e.g. ".X" for OTPv2). That prefix should be stated here.
+     */
   String prefix();
 
-  /// Encrypts the text fragment using the provided key.
-  ///
-  /// - Parameters:
-  ///   - text: The text that needs to be encrypted.
-  ///   - key: The encryption passphrase. This will be stored on a remote key server.
-  ///   - completion: The block that will be called upon completion.
-  ///   - encodedData: The encrypted data. This should be nil if the process failed.
-  ///   - resultingKey: The key that was ultimately used (the original key could be modified by the algorithm if inadequate).
-  CompletableFuture<ServerResponse> encrypt(String text, String key);
+    /**
+     * Encrypts the text fragment using the provided key.
+     * <p>
+     * - Parameters:
+     * @param text The text that needs to be encrypted.
+     * @param key The encryption passphrase. This will be stored on a remote key server.
+     */
+   CompletableFuture<ServerResponse> encrypt(String text, String key);
 
 
-  /// Encrypts the text fragment using the provided key.
-  ///
-  /// - Parameters:
-  ///   - text: The text that needs to be decrypted.
-  ///   - key: The encryption passphrase.
-  ///   - completion: The block that will be called upon completion.
-  ///   - decodedData: The decrypted data. This should be nil if the process failed.
-  ///   - resultingKey: The key that was ultimately used (the original key could be modified by the algorithm if inadequate).
+    /**
+     * Decrypts the text fragment using the provided key.
+     * <p>
+     * - Parameters:
+     * @param text The text that needs to be decrypted.
+     * @param key The encryption passphrase.
+     */
   CompletableFuture<ServerResponse> decrypt(String text, String key);
 
 
-  /// Encrypts the referenced file using the provided key.
-  ///
-  /// - Parameters:
-  ///   - file: The text that needs to be encrypted.
-  ///   - to: The URL where the resulting file should be stored.
-  ///   - key: The encryption passphrase. This will be stored on a remote key server.
-  ///   - token: The token that will be used to retrieve the key. This will be embedded in the file
-  ///   - completion: The block that will be called upon completion.
-  ///   - success: The encryption status. Will be false if anything went wrong.
-  ///   - resultingKey: The key that was ultimately used (the original key could be modified by the algorithm if inadequate).
-  CompletableFuture<ServerResponse> encrypt(Path sourceFilePath, Path targetFilePath, String key, String publicToken);
+    /**
+     * Encrypts the referenced file using the provided key.
+     * <p>
+     * - Parameters:
+     * @param sourceFilePath Path to the file that needs to be encrypted.
+     * @param targetFilePath Path to the encrypted file.
+     * @param key The key that was ultimately used (the original key could be modified by the algorithm if inadequate).
+     * @param locatorToken The token that will be used to retrieve the key. This will be embedded in the file
+     */
+  CompletableFuture<ServerResponse> encrypt(Path sourceFilePath, Path targetFilePath, String key, String locatorToken);
 
-  /// Decrypts the referenced file using the provided key.
-  ///
-  /// - Parameters:
-  ///   - file: The text that needs to be encrypted.
-  ///   - to: The URL where the resulting file should be stored.
-  ///   - key: The encryption passphrase. This will be stored on a remote key server.
-  ///   - completion: The block that will be called upon completion.
-  ///   - success: The encryption status. Will be false if anything went wrong.
+    /**
+     * Decrypts the referenced file using the provided key.
+     * <p>
+     * - Parameters:
+     * @param sourceFilePath Path to the encrypted file.
+     * @param targetFilePath Path to the decrypted file.
+     * @param retrieveKeyFunction Once the locator token, which exists embedded in the encrypted file,has been identified it will be passed to this function.<br>
+     * The purpose of this function is to fetch the key from the server.
+     */
   CompletableFuture<ServerResponse> decrypt(Path sourceFilePath, Path targetFilePath, Function<String, CompletableFuture<String>> retrieveKeyFunction);
 
    static <T> Logger Logger(Class<T> clazz){
@@ -84,10 +87,11 @@ public interface XQAlgorithm {
   }
 
 
-/**
- * Shuffles the content using the fisher-yates shuffle algorithm.
- * @return {String}
- */
+    /**
+     * Shuffles the content using the fisher-yates shuffle algorithm.
+     *
+     * @return  shuffled content
+     */
 
    default String shuffle(String s) {
          var a = s.split("\\s");
@@ -101,12 +105,13 @@ public interface XQAlgorithm {
      return String.join(" ", a);
   }
 
-  /**
-   * Expand a key length to that of the text that needs encryption.
-   * @param k The original key ( cannot be empty
-   * @param extendTo The key length that we require
-   * @returns Expanded Key
-   */
+    /**
+     * Expand a key length to that of the text that needs encryption.
+     *
+     * @param k        The original key ( cannot be empty )
+     * @param extendTo The key length that we require
+     * @returns Expanded Key
+     */
   default String expandKey  (String k, int extendTo) {
     //String key = k.replace("\n$","");
     String key = k.trim();
