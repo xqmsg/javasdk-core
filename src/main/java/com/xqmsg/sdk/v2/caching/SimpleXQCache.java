@@ -122,30 +122,17 @@ public class SimpleXQCache implements XQCache {
     if (availableProfiles == null) {
       map.put(PROFILE_LIST_KEY, List.of(user));
     } else {
-      List<String> merged = Stream.concat(availableProfiles.stream(), List.of(user).stream())
-                                  .distinct()
-                                  .collect(Collectors.toList());
-      map.put(PROFILE_LIST_KEY, merged);
+      if(!availableProfiles.contains(user)) {
+        List<String> merged = Stream.concat(availableProfiles.stream(), List.of(user).stream())
+                .distinct()
+                .collect(Collectors.toList());
+        map.put(PROFILE_LIST_KEY, merged);
+      }
     }
     map.put(ACTIVE_PROFILE_KEY, user);
 
   }
 
-
-  @Override
-  public void putProfile(String user) {
-    List<String> availableProfiles = (List) map.get(PROFILE_LIST_KEY);
-
-    if (availableProfiles == null) {
-      map.put(PROFILE_LIST_KEY, List.of(user));
-    } else {
-      List<String> merged = Stream.concat(availableProfiles.stream(), List.of(user).stream()).collect(Collectors.toList());
-      map.put(PROFILE_LIST_KEY, merged);
-    }
-    if(map.get(ACTIVE_PROFILE_KEY)==null){
-      map.put(ACTIVE_PROFILE_KEY, user);
-    }
-  }
 
   @Override
   public String getActiveProfile(boolean required) throws StatusCodeException {

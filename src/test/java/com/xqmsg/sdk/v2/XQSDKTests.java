@@ -890,13 +890,13 @@ class XQSDKTests {
 
     @Test
     @Order(120)
-    @Disabled
+    //@Disabled
     void testAuthorizeAlias() throws Exception {
 
-        String email = System.getProperty("xqsdk-alias-user");
+        String alias = System.getProperty("xqsdk-alias-user");
 
         Map<String, Object> payload =
-                Map.of(Authorize.USER, email,
+                Map.of(Authorize.USER, alias,
                         Authorize.FIRST_NAME, "User",
                         Authorize.LAST_NAME, "XQMessage");
 
@@ -915,6 +915,11 @@ class XQSDKTests {
                                 }
                             }
                         }).get();
+
+        //change the active profile back to the previously authorized account
+        String email = System.getProperty("xqsdk-user.email");
+
+        sdk.getCache().putActiveProfile(email);
 
         assertTrue(accessToken != null && !"".equals(accessToken.trim()));
         assertNotEquals("", accessToken);

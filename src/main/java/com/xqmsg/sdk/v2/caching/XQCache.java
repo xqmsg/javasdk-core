@@ -79,11 +79,6 @@ public interface XQCache {
   void putActiveProfile(String user);
 
   /**
-   * @param user
-   */
-  void putProfile(String user);
-
-  /**
    * @param required
    * @return
    * @throws StatusCodeException
