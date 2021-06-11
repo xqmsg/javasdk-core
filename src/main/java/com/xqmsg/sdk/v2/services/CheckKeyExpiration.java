@@ -52,37 +52,42 @@ public class CheckKeyExpiration extends XQModule {
     /**
      * @param maybeArgs Map of request parameters supplied to this method.
      *                  <pre>parameter details:<br>
-     *                  String locatorToken! - A URL encoded version of the key locator token to fetch the key from the server.
-     *                  </pre>
+     *                                                                     String locatorToken! - A URL encoded version of the key locator token to fetch the key from the server.
+     *                                                                     </pre>
      * @returns CompletableFuture&lt;ServerResponse#payload:{expiresOn:long}}>>
      * @apiNote !=required ?=optional [...]=default {...} map
      */
     @Override
     public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
+        try {
+            return
+                    validate
+                            .andThen((maybeValidated) -> {
+                                try {
+                                    return authorize
+                                            .andThen(
+                                                    (authorizationToken) -> {
+                                                        Map<String, Object> args = maybeValidated.get();
+                                                        String locatorToken = (String) args.get(LOCATOR_TOKEN);
 
-        return CompletableFuture.completedFuture(
-                validate
-                        .andThen((maybeValidated) ->
-                                authorize
-                                        .andThen(
-                                                (authorizationToken) -> {
-                                                    Map<String, Object> args = maybeValidated.get();
-                                                    String locatorToken = (String) args.get(LOCATOR_TOKEN);
+                                                        final String DYNAMIC_SERVICE_NAME = String.format("%s/%s", SERVICE_NAME, encode(locatorToken));
 
-                                                    final String DYNAMIC_SERVICE_NAME = String.format("%s/%s", SERVICE_NAME, encode(locatorToken));
+                                                        return CompletableFuture.completedFuture(sdk.call(sdk.VALIDATION_SERVER_URL,
+                                                                Optional.of(DYNAMIC_SERVICE_NAME),
+                                                                CallMethod.Get,
+                                                                Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
+                                                                Optional.of(Destination.XQ),
+                                                                Optional.of(Map.of())));
 
-                                                    return sdk.call(sdk.VALIDATION_SERVER_URL,
-                                                            Optional.of(DYNAMIC_SERVICE_NAME),
-                                                            CallMethod.Get,
-                                                            Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
-                                                            Optional.of(Destination.XQ),
-                                                            Optional.of(Map.of()));
-
-                                                })
-                                        .apply(Optional.of(Destination.XQ), maybeValidated)
-                        )
-                        .apply(maybeArgs))
-                .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+                                                    })
+                                            .apply(Optional.of(Destination.XQ), maybeValidated);
+                                } catch (RuntimeException e) {
+                                    return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
+                                }
+                            }).apply(maybeArgs);
+        } catch (RuntimeException e) {
+            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
+        }
 
     }
 

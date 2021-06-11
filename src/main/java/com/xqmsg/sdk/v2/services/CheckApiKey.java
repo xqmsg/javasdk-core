@@ -49,30 +49,38 @@ public class CheckApiKey extends XQModule {
     /**
      * @param maybeArgs Map of request parameters supplied to this method.
      *                  <pre>parameter details:<br>
-     *                                   String api-key! - The API key whose scopes are to be checked.<br>
-     *                                   </pre>
+     *                                                                     String api-key! - The API key whose scopes are to be checked.<br>
+     *                                                                     </pre>
      * @returns CompletableFuture&lt;ServerResponse#payload:{scopes:List<String>}>>
      * @apiNote !=required ?=optional [...]=default {...} map
      */
     @Override
     public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
+        try {
+            return validate
+                    .andThen((validated) -> {
+                        try {
+                            return authorize
+                                    .andThen((authorizationToken) ->
+                                            CompletableFuture.completedFuture(
+                                                    sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                                            Optional.of(SERVICE_NAME),
+                                                            CallMethod.Get,
+                                                            Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
+                                                            Optional.of(Destination.XQ),
+                                                            maybeArgs)
+                                            )
+                                    ).apply(Optional.of(Destination.XQ), validated);
 
-        return CompletableFuture.completedFuture(
-                validate.andThen((args) ->
-                        authorize.andThen(
-                                (authorizationToken) -> {
-                                    return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                                            Optional.of(SERVICE_NAME),
-                                            CallMethod.Get,
-                                            Optional.of(Map.of("Authorization", String.format("Bearer %s", authorizationToken))),
-                                            Optional.of(Destination.XQ),
-                                            maybeArgs);
-                                }).apply(Optional.of(Destination.XQ), args)
+                        } catch (RuntimeException e) {
+                            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
+                        }
+                    }).apply(maybeArgs);
 
-                ).apply(maybeArgs))
-                .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
-
+        } catch (RuntimeException e) {
+            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
+        }
 
     }
 

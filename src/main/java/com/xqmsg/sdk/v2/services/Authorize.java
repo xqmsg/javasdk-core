@@ -27,85 +27,86 @@ import java.util.logging.Logger;
  */
 public class Authorize extends XQModule {
 
-  private final Logger logger = Logger.getLogger(getClass().getName(), null);
+    private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
-  public static String USER = "user";
-  public static String FIRST_NAME = "firstName";
-  public static String LAST_NAME = "lastName";
-  public static String NEWSLETTER = "newsletter";
-  public static String NOTIFICATIONS = "notifications";
+    public static String USER = "user";
+    public static String FIRST_NAME = "firstName";
+    public static String LAST_NAME = "lastName";
+    public static String NEWSLETTER = "newsletter";
+    public static String NOTIFICATIONS = "notifications";
 
-  private static final String SERVICE_NAME = "authorize";
+    private static final String SERVICE_NAME = "authorize";
 
-  private Authorize(XQSDK sdk) {
-    assert sdk != null : "An instance of the XQSDK is required";
-     super.sdk = sdk;
-     super.cache = sdk.getCache();
-  }
+    private Authorize(XQSDK sdk) {
+        assert sdk != null : "An instance of the XQSDK is required";
+        super.sdk = sdk;
+        super.cache = sdk.getCache();
+    }
 
-  /**
-   * @param sdk App Settings
-   * @returns Authorize
-   */
-  public static Authorize with(XQSDK sdk) {
-    return new Authorize(sdk);
-  }
+    /**
+     * @param sdk App Settings
+     * @returns Authorize
+     */
+    public static Authorize with(XQSDK sdk) {
+        return new Authorize(sdk);
+    }
 
-  @Override
-  public List<String> requiredFields() {
-    return List.of(USER);
-  }
-
-
-  /**
-   * @param maybeArgs Map of request parameters supplied to this method.
-   *                  <pre>parameter details:<br>
-   *                                   String user! - Email of the user to be authorized.<br>
-   *                                   String firstName?  - First name of the user.<br>
-   *                                   String lastName? - Last name of the user.<br>
-   *                                   Boolean newsLetter? [false] - Should the user receive a newsletter.<br>
-   *                                   NotificationEnum notifications? [0] - Enum Value to specify Notification Settings.<br>
-   *                                   </pre>
-   * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}>>
-   * @apiNote !=required ?=optional [...]=default {...} map
-   */
-  @Override
-  public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
-
-    return CompletableFuture.completedFuture(
-            validate
-                    .andThen((result) -> {
-                      ServerResponse serverResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                              Optional.of(SERVICE_NAME),
-                              CallMethod.Post,
-                              Optional.empty(),
-                              Optional.of(Destination.XQ),
-                              result);
-
-                      Map<String, Object> inputArguments = result.get();
-                      String user = (String) inputArguments.get(USER);
-
-                      switch (serverResponse.status) {
-                        case Ok: {
-                          String temporaryAccessToken = (String) serverResponse.payload.get(ServerResponse.DATA);
-                          cache.putXQPreAuthToken(user, temporaryAccessToken);
-                          cache.putActiveProfile(user);
-                        }
-                        default: {
-                          return serverResponse;
-                        }
-                      }
-                    })
-                    .apply(maybeArgs))
-            .exceptionally(e ->
-                    new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+    @Override
+    public List<String> requiredFields() {
+        return List.of(USER);
+    }
 
 
-  }
+    /**
+     * @param maybeArgs Map of request parameters supplied to this method.
+     *                  <pre>parameter details:<br>
+     *                                                    String user! - Email of the user to be authorized.<br>
+     *                                                    String firstName?  - First name of the user.<br>
+     *                                                    String lastName? - Last name of the user.<br>
+     *                                                    Boolean newsLetter? [false] - Should the user receive a newsletter.<br>
+     *                                                    NotificationEnum notifications? [0] - Enum Value to specify Notification Settings.<br>
+     *                                                    </pre>
+     * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}>>
+     * @apiNote !=required ?=optional [...]=default {...} map
+     */
+    @Override
+    public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
+        try {
+            return CompletableFuture.completedFuture(
+                    validate
+                            .andThen((result) -> {
+                                ServerResponse serverResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                        Optional.of(SERVICE_NAME),
+                                        CallMethod.Post,
+                                        Optional.empty(),
+                                        Optional.of(Destination.XQ),
+                                        result);
 
-  @Override
-  public String moduleName() {
-    return "Authorize";
-  }
+                                Map<String, Object> inputArguments = result.get();
+                                String user = (String) inputArguments.get(USER);
+
+                                switch (serverResponse.status) {
+                                    case Ok: {
+                                        String temporaryAccessToken = (String) serverResponse.payload.get(ServerResponse.DATA);
+                                        cache.putXQPreAuthToken(user, temporaryAccessToken);
+                                        cache.putActiveProfile(user);
+                                    }
+                                    default: {
+                                        return serverResponse;
+                                    }
+                                }
+                            })
+                            .apply(maybeArgs));
+
+        } catch (RuntimeException e) {
+            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
+        }
+
+    }
+
+    @Override
+    public String moduleName() {
+        return "Authorize";
+    }
 
 }

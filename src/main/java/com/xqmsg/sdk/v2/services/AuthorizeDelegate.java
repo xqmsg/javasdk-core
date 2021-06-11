@@ -20,62 +20,71 @@ import java.util.logging.Logger;
  */
 public class AuthorizeDelegate extends XQModule {
 
-  private final Logger logger = Logger.getLogger(getClass().getName(), null);
+    private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
-  private static final String SERVICE_NAME = "delegate";
+    private static final String SERVICE_NAME = "delegate";
 
-  private AuthorizeDelegate(XQSDK sdk) {
-    assert sdk != null : "An instance of the XQSDK is required";
-    super.sdk = sdk;
-    super.cache = sdk.getCache();
-  }
+    private AuthorizeDelegate(XQSDK sdk) {
+        assert sdk != null : "An instance of the XQSDK is required";
+        super.sdk = sdk;
+        super.cache = sdk.getCache();
+    }
 
-  /**
-   * @param sdk App Settings
-   * @returns this
-   */
-  public static AuthorizeDelegate with(XQSDK sdk) {
-    return new AuthorizeDelegate(sdk);
-  }
+    /**
+     * @param sdk App Settings
+     * @returns this
+     */
+    public static AuthorizeDelegate with(XQSDK sdk) {
+        return new AuthorizeDelegate(sdk);
+    }
 
-  @Override
-  public List<String> requiredFields() {
-    return List.of();
-  }
+    @Override
+    public List<String> requiredFields() {
+        return List.of();
+    }
 
-  /**
-   * @param maybeArgs Map of request parameters supplied to this method.
-   *                  <pre>parameter details:none</pre>
-   * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}}>>
-   * @apiNote !=required ?=optional [...]=default {...} map
-   */
-  @Override
-  public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
+    /**
+     * @param maybeArgs Map of request parameters supplied to this method.
+     *                  <pre>parameter details:none</pre>
+     * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}}>>
+     * @apiNote !=required ?=optional [...]=default {...} map
+     */
+    @Override
+    public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
+        try {
+            return validate
+                    .andThen((validated) -> {
+                        try {
+                            return authorize
+                                    .andThen((authorizationToken) -> {
+                                        Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
+                                        return CompletableFuture.completedFuture(
+                                                sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                                        Optional.of(SERVICE_NAME),
+                                                        CallMethod.Get,
+                                                        Optional.of(headerProperties),
+                                                        Optional.of(Destination.XQ),
+                                                        maybeArgs)
+                                        );
+                                    })
+                                    .apply(Optional.of(Destination.XQ), validated);
 
+                        } catch (RuntimeException e) {
+                            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
+                        }
 
-    return CompletableFuture.completedFuture(
-            validate.andThen((args) ->
-                    authorize.andThen(
-                            (authorizationToken) -> {
-                              Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
-                              return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                                      Optional.of(SERVICE_NAME),
-                                      CallMethod.Get,
-                                      Optional.of(headerProperties),
-                                      Optional.of(Destination.XQ),
-                                      maybeArgs);
-                            }).apply(Optional.of(Destination.XQ), args)
-            )
-             .apply(maybeArgs))
-            .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+                    }).apply(maybeArgs);
 
+        } catch (RuntimeException e) {
+            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
+        }
 
-  }
+    }
 
-  @Override
-  public String moduleName() {
-    return "AuthorizeDelegate";
-  }
+    @Override
+    public String moduleName() {
+        return "AuthorizeDelegate";
+    }
 
 
 }

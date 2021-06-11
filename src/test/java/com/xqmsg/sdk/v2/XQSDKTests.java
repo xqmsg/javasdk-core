@@ -622,6 +622,7 @@ class XQSDKTests {
         final String ALIAS_USER_ID = "123";
         final String ALIAS_RECIPIENT_ONE_ID = "456";
         final String ALIAS_RECIPIENT_TWO_ID = "789";
+        final String INVALID_RECIPIENT = "xxx";
 
         //encryptor
         authorizeliasAccess(ALIAS_USER_ID);
@@ -690,15 +691,24 @@ class XQSDKTests {
         logger.info("Decrypted Text:  " + decryptedText1);
         assertEquals(originalText, decryptedText1);
 
-        //reset the active profile back to the test user
-        String email = System.getProperty("xqsdk-user.email");
-        sdk.getCache().putActiveProfile(email);
-
-
         //remove alias account from cache
         sdk.getCache().removeProfile(ALIAS_USER_ID);
         sdk.getCache().removeProfile(ALIAS_RECIPIENT_ONE_ID);
         sdk.getCache().removeProfile(ALIAS_RECIPIENT_TWO_ID);
+
+        ///---------
+        //should not be able to decrypt
+        sdk.getCache().putActiveProfile(INVALID_RECIPIENT);
+        ServerResponse decryptResponse3 = Decrypt
+                .with(sdk, AlgorithmEnum.OTPv2)
+                .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText))).get();
+
+        assertEquals(CallStatus.Error, decryptResponse3.status);
+
+        //reset the active profile back to the test user
+        String email = System.getProperty("xqsdk-user.email");
+        sdk.getCache().putActiveProfile(email);
+
 
     }
 

@@ -53,45 +53,46 @@ public class AuthorizeAlias extends XQModule {
     /**
      * @param maybeArgs Map of request parameters supplied to this method.
      *                  <pre>parameter details:<br>
-     *                  String user! - Email of the user to be validated.<br>
-     *                  String firstName?  - First name of the user.<br>
-     *                  String lastName? - Last name of the user.<br>
-     *                  </pre>
+     *                                   String user! - Email of the user to be validated.<br>
+     *                                   String firstName?  - First name of the user.<br>
+     *                                   String lastName? - Last name of the user.<br>
+     *                                   </pre>
      * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}>>
      * @apiNote !=required ?=optional [...]=default {...} map
      */
     @Override
     public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
+        try {
+            return CompletableFuture.completedFuture(
+                    validate.andThen(
+                            (validatedArgs) -> {
+                                ServerResponse response = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                        Optional.of(SERVICE_NAME),
+                                        CallMethod.Post,
+                                        Optional.empty(),
+                                        Optional.of(Destination.XQ),
+                                        validatedArgs);
 
-        return CompletableFuture.completedFuture(
-                validate.andThen(
-                        (validatedArgs) -> {
-                            ServerResponse response = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                                    Optional.of(SERVICE_NAME),
-                                    CallMethod.Post,
-                                    Optional.empty(),
-                                    Optional.of(Destination.XQ),
-                                    validatedArgs);
+                                String aliasUser = (String) validatedArgs.get().get(AuthorizeAlias.USER);
 
-                            String aliasUser = (String) validatedArgs.get().get(AuthorizeAlias.USER);
+                                switch (response.status) {
+                                    case Ok: {
+                                        String accessToken = (String) response.payload.get("data");
 
-                            switch (response.status) {
-                                case Ok: {
-                                    String accessToken = (String) response.payload.get("data");
-
-                                    cache.putXQAccess(aliasUser, accessToken);
-                                    return response;
+                                        cache.putXQAccess(aliasUser, accessToken);
+                                        return response;
+                                    }
+                                    default: {
+                                        logger.warning(String.format("failed , reason: %s", response.moreInfo()));
+                                        return response;
+                                    }
                                 }
-                                default: {
-                                    logger.warning(String.format("failed , reason: %s", response.moreInfo()));
-                                    return response;
-                                }
-                            }
-                        })
-                        .apply(maybeArgs))
-                .exceptionally(e ->
-                        new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
+                            })
+                            .apply(maybeArgs));
 
+        } catch (RuntimeException e) {
+            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
+        }
     }
 
     @Override
