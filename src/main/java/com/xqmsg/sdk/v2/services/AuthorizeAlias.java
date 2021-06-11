@@ -26,6 +26,7 @@ public class AuthorizeAlias extends XQModule {
     public static String USER = "user";
     public static String FIRST_NAME = "firstName";
     public static String LAST_NAME = "lastName";
+    public static String ANY_AUTHORIZED = "xq.public";
 
     private static final String SERVICE_NAME = "authorizealias";
 

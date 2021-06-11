@@ -534,13 +534,16 @@ class XQSDKTests {
     //@Disabled
     void testEncryptDecryptMessageWithAliasUserAndAliasRecipient() throws Exception {
 
-        //encryptor
-        authorizeliasAccess("123");
-        sdk.getCache().putActiveProfile("123");
+        final String ALIAS_USER_ID = "123";
+        final String ALIAS_RECIPIENT_ONE_ID = "456";
+        final String ALIAS_RECIPIENT_TWO_ID = "789";
 
+        //alias user doing the encryption
+        authorizeliasAccess(ALIAS_USER_ID);
+        sdk.getCache().putActiveProfile(ALIAS_USER_ID);
 
-        //xq.public
-        List aliasRecipients = List.of("456@alias.local");
+        //a specific alias recipient
+        List aliasRecipients = List.of(ALIAS_RECIPIENT_ONE_ID+"@alias.local");
 
         final String originalText =
                 "\n\nSehr geehrter Mr. Krings,\n" +
@@ -571,7 +574,7 @@ class XQSDKTests {
 
         ServerResponse encryptResponse = Encrypt
                 .with(sdk, AlgorithmEnum.OTPv2)
-                .supplyAsync(Optional.of(Map.of(Encrypt.USER, "123",
+                .supplyAsync(Optional.of(Map.of(Encrypt.USER, ALIAS_USER_ID,
                         Encrypt.TEXT, originalText,
                         Encrypt.RECIPIENTS, aliasRecipients,
                         Encrypt.MESSAGE_EXPIRATION_HOURS, 1))).get();
@@ -581,8 +584,8 @@ class XQSDKTests {
 
         ///---------
         //intended recipient, should be able to decrypt
-        authorizeliasAccess("456");
-        sdk.getCache().putActiveProfile("456");
+        authorizeliasAccess(ALIAS_RECIPIENT_ONE_ID);
+        sdk.getCache().putActiveProfile(ALIAS_RECIPIENT_ONE_ID);
         ServerResponse decryptResponse = Decrypt
                                            .with(sdk, AlgorithmEnum.OTPv2)
                                            .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText))).get();
@@ -591,11 +594,10 @@ class XQSDKTests {
         logger.info("Decrypted Text:  " + decryptedText);
         assertEquals(originalText, decryptedText);
 
-
         ///---------
         //not a valid recipient, should not be able to decrypt
-        authorizeliasAccess("789");
-        sdk.getCache().putActiveProfile("789");
+        authorizeliasAccess(ALIAS_RECIPIENT_TWO_ID);
+        sdk.getCache().putActiveProfile(ALIAS_RECIPIENT_TWO_ID);
         ServerResponse decryptResponse1 = Decrypt
                                              .with(sdk, AlgorithmEnum.OTPv2)
                                              .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText))).get();
@@ -605,9 +607,9 @@ class XQSDKTests {
         sdk.getCache().putActiveProfile(email);
 
         //remove alias account from cache
-        sdk.getCache().removeProfile("123");
-        sdk.getCache().removeProfile("456");
-        sdk.getCache().removeProfile("789");
+        sdk.getCache().removeProfile(ALIAS_USER_ID);
+        sdk.getCache().removeProfile(ALIAS_RECIPIENT_ONE_ID);
+        sdk.getCache().removeProfile(ALIAS_RECIPIENT_TWO_ID);
 
         assertEquals(CallStatus.Error, decryptResponse1.status.Error);
     }
@@ -617,33 +619,36 @@ class XQSDKTests {
     //@Disabled
     void testEncryptDecryptMessageWithAliasUserAndXQPublic() throws Exception {
 
+        final String ALIAS_USER_ID = "123";
+        final String ALIAS_RECIPIENT_ONE_ID = "456";
+        final String ALIAS_RECIPIENT_TWO_ID = "789";
+
         //encryptor
-        authorizeliasAccess("123");
-        sdk.getCache().putActiveProfile("123");
+        authorizeliasAccess(ALIAS_USER_ID);
+        sdk.getCache().putActiveProfile(ALIAS_USER_ID);
 
-
-        List aliasRecipients = List.of("xq.public");
+        List aliasRecipients = List.of(AuthorizeAlias.ANY_AUTHORIZED);
 
         final String originalText =
                 "\n\nSehr geehrter Mr. Krings,\n" +
-                        "wenn Oechtringen irgendwo mit einem Akzent auf dem O geschrieben wurde, dann kann das nur ein Fehldruck sein. \n"+
+                        "wenn Oechtringen irgendwo mit einem Akzent auf dem O geschrieben wurde, dann kann das nur ein Fehldruck sein. \n" +
                         "Die offizielle Schreibweise lautet jedenfalls „Oechtringen“. \n" +
                         "Mit freundlichen Grüssen \n" +
                         "Der Samtgemeindebürgermeister \n" +
                         "i.A. Lothar Jessel \n" +
-                        "From Karl Pentzlin (Kochel am See, Bavaria, Germany): \n"+
+                        "From Karl Pentzlin (Kochel am See, Bavaria, Germany): \n" +
                         "This German phrase is suited for display by a Fraktur (broken letter) font. \n" +
-                        "It contains: all common three-letter ligatures: ffi ffl fft and all two-letter ligatures required by the Duden for Fraktur typesetting: \n"+
-                        "ch ck ff fi fl ft ll ſch ſi ſſ ſt tz (all in a manner such they are not part of a three-letter ligature), one example of f-l where German typesetting \n"+
-                        "rules prohibit ligating (marked by a ZWNJ), and all German letters a...z, ä,ö,ü,ß, ſ [long s] \n"+
+                        "It contains: all common three-letter ligatures: ffi ffl fft and all two-letter ligatures required by the Duden for Fraktur typesetting: \n" +
+                        "ch ck ff fi fl ft ll ſch ſi ſſ ſt tz (all in a manner such they are not part of a three-letter ligature), one example of f-l where German typesetting \n" +
+                        "rules prohibit ligating (marked by a ZWNJ), and all German letters a...z, ä,ö,ü,ß, ſ [long s] \n" +
                         "(all in a manner such that they are not part of a two-letter Fraktur ligature). \n" +
-                        "Otto Stolz notes that \" 'Schloß' \" is now spelled 'Schloss', in contrast to 'größer' (example 4) which has kept its 'ß'. \n"+
+                        "Otto Stolz notes that \" 'Schloß' \" is now spelled 'Schloss', in contrast to 'größer' (example 4) which has kept its 'ß'. \n" +
                         "Fraktur has been banned from general use, in 1942, and long-s (ſ) has ceased to be used with Antiqua (Roman) even earlier \n" +
-                        "(the latest Antiqua-ſ I have seen is from 1913, but then I am no expert, so there may well be a later instance.\" Later Otto confirms the latter theory, \n"+
-                        "\"Now I've run across a book “Deutsche Rechtschreibung” (edited by Lutz Mackensen) from 1954 (my reprint is from 1956) that has kept the Antiqua-ſ in \n"+
+                        "(the latest Antiqua-ſ I have seen is from 1913, but then I am no expert, so there may well be a later instance.\" Later Otto confirms the latter theory, \n" +
+                        "\"Now I've run across a book “Deutsche Rechtschreibung” (edited by Lutz Mackensen) from 1954 (my reprint is from 1956) that has kept the Antiqua-ſ in \n" +
                         "its dictionary part (but neither in the preface nor in the appendix).\" \n" +
                         "Diaeresis is not used in Iberian Portuguese. Also this pangram is missing a-tilde (ã) so it's a pænpangram. \n" +
-                        "From Yurio Miyazawa: \"This poetry contains all the sounds in the Japanese language and used to be the first thing for children to learn in their Japanese class. \n"+
+                        "From Yurio Miyazawa: \"This poetry contains all the sounds in the Japanese language and used to be the first thing for children to learn in their Japanese class. \n" +
                         "The Hiragana version is particularly neat because it covers every character in the phonetic Hiragana character set.\" Yurio also sent the Kanji version: \n" +
                         "色は匂へど 散りぬるを \n" +
                         "我が世誰ぞ 常ならむ \n" +
@@ -653,7 +658,7 @@ class XQSDKTests {
 
         ServerResponse encryptResponse = Encrypt
                 .with(sdk, AlgorithmEnum.OTPv2)
-                .supplyAsync(Optional.of(Map.of(Encrypt.USER, "123",
+                .supplyAsync(Optional.of(Map.of(Encrypt.USER, ALIAS_USER_ID,
                         Encrypt.TEXT, originalText,
                         Encrypt.RECIPIENTS, aliasRecipients,
                         Encrypt.MESSAGE_EXPIRATION_HOURS, 1))).get();
@@ -663,8 +668,8 @@ class XQSDKTests {
 
         ///---------
         //should be able to decrypt
-        authorizeliasAccess("456");
-        sdk.getCache().putActiveProfile("456");
+        authorizeliasAccess(ALIAS_RECIPIENT_ONE_ID);
+        sdk.getCache().putActiveProfile(ALIAS_RECIPIENT_ONE_ID);
         ServerResponse decryptResponse = Decrypt
                 .with(sdk, AlgorithmEnum.OTPv2)
                 .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText))).get();
@@ -673,29 +678,29 @@ class XQSDKTests {
         logger.info("Decrypted Text:  " + decryptedText);
         assertEquals(originalText, decryptedText);
 
-
         ///---------
         //should also be able to decrypt
-        authorizeliasAccess("789");
-        sdk.getCache().putActiveProfile("789");
+        authorizeliasAccess(ALIAS_RECIPIENT_TWO_ID);
+        sdk.getCache().putActiveProfile(ALIAS_RECIPIENT_TWO_ID);
         ServerResponse decryptResponse1 = Decrypt
                 .with(sdk, AlgorithmEnum.OTPv2)
                 .supplyAsync(Optional.of(Map.of(Decrypt.LOCATOR_TOKEN, locatorToken, Decrypt.ENCRYPTED_TEXT, encryptedText))).get();
+
+        String decryptedText1 = (String) decryptResponse1.payload.get(ServerResponse.DATA);
+        logger.info("Decrypted Text:  " + decryptedText1);
+        assertEquals(originalText, decryptedText1);
 
         //reset the active profile back to the test user
         String email = System.getProperty("xqsdk-user.email");
         sdk.getCache().putActiveProfile(email);
 
+
         //remove alias account from cache
-        sdk.getCache().removeProfile("123");
-        sdk.getCache().removeProfile("456");
-        sdk.getCache().removeProfile("789");
+        sdk.getCache().removeProfile(ALIAS_USER_ID);
+        sdk.getCache().removeProfile(ALIAS_RECIPIENT_ONE_ID);
+        sdk.getCache().removeProfile(ALIAS_RECIPIENT_TWO_ID);
 
-        String decryptedText1 = (String) decryptResponse1.payload.get(ServerResponse.DATA);
-        logger.info("Decrypted Text:  " + decryptedText1);
-        assertEquals(originalText, decryptedText1);
     }
-
 
     @Test
     @Order(50)

@@ -81,11 +81,25 @@ In order to utilize the XQ SDK and interact with XQ servers you will need both t
 The text to be encrypted should be submitted along with the email addresses of the intended recipients, as well as the amount of time that the message should be available.
 
 ```java
-
     String userEmail = "me@email.com";
+```
+One can list specific recipients all of which have to be authorized XQ users ...
 
+```java
     List recipients = List.of("jane@email.com", "jack@email.com");
+```
+or specific recipients which are authorized alias users  ...
 
+```java
+    List recipients = List.of("123@alias.local", "456@alias.local");
+```
+or anyone who has a copy of the locator token
+
+```java
+    List recipients = List.of(AuthorizeAlias.ANY_AUTHORIZED);
+```
+
+```java
     final String messageToEncrypt =
             "The first stanza of Pushkin's Bronze Horseman (Russian):\n" +
             "На берегу пустынных волн\n" +
@@ -168,13 +182,27 @@ To decrypt a message, the encrypted payload must be provided, along with the loc
 Here, a `File` object containing the data for encryption must be provided. Like message encryption, a list of recipients who will be able to decrypt the file, as well as the amount of time before expiration must also be provided.
 
 ```java
-    
-      final Path sourceSpec = Paths.get("path/to/original/file/my-original-file.txt"));
-      final Path targetSpec = Paths.get("path/to/encrypted/file/my-encrypted-file.txt.xqf));
+   final Path sourceSpec = Paths.get("path/to/original/file/my-original-file.txt"));
+   final Path targetSpec = Paths.get("path/to/encrypted/file/my-encrypted-file.txt.xqf")); 
+   String userEmail = "me@email.com";
+   Integer expiration = 5;
+```
+One can list specific recipients all of which have to be authorized XQ users ...
 
-      String userEmail = "me@email.com";
-      List recipients = List.of("jane@email.com", "jack@email.com");
-      Integer expiration = 5;
+```java
+    List recipients = List.of("jane@email.com", "jack@email.com");
+```
+or specific recipients which are authorized alias users  ...
+
+```java
+    List recipients = List.of("123@alias.local", "456@alias.local");
+```
+or anyone who has a copy of the locator token
+
+```java
+    List recipients = List.of(AuthorizeAlias.ANY_AUTHORIZED);
+```
+```java      
 
       Path encryptedFilePath = FileEncrypt.with(sdk, AlgorithmEnum.OTPv2)
               .supplyAsync(Optional.of(Map.of(FileEncrypt.USER, userEmail,
