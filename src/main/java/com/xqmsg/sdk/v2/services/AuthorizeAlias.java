@@ -79,7 +79,6 @@ public class AuthorizeAlias extends XQModule {
                                     String accessToken = (String) response.payload.get("data");
 
                                     cache.putXQAccess(aliasUser, accessToken);
-                                    cache.putActiveProfile(aliasUser);
                                     return response;
                                 }
                                 default: {
