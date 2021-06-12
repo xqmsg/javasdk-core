@@ -44,50 +44,52 @@ public class DashboardLogin extends XQModule {
     /**
      * @param maybeArgs Map of request parameters supplied to this method.
      *                  <pre>parameter details:<br>
-     *                                                                     String user! - Email of the user to be authorized.<br>
-     *                                                                     String firstName?  - First name of the user.<br>
-     *                                                                     String lastName? - Last name of the user.<br>
-     *                                                                     Boolean newsLetter? [false] - Should the user receive a newsletter.<br>
-     *                                                                     NotificationEnum notifications? [0] - Enum Value to specify Notification Settings.<br>
-     *                                                                     </pre>
+     *                                                                                                       String user! - Email of the user to be authorized.<br>
+     *                                                                                                       String firstName?  - First name of the user.<br>
+     *                                                                                                       String lastName? - Last name of the user.<br>
+     *                                                                                                       Boolean newsLetter? [false] - Should the user receive a newsletter.<br>
+     *                                                                                                       NotificationEnum notifications? [0] - Enum Value to specify Notification Settings.<br>
+     *                                                                                                       </pre>
      * @returns CompletableFuture&lt;ServerResponse#payload:{data:String}>>
      * @apiNote !=required ?=optional [...]=default {...} map
      */
     @Override
     public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
+        try {
+            ServerResponse serverResponse =
+                    authorize
+                            .andThen((xqAccessToken) -> {
+                                        Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", xqAccessToken));
+                                        return sdk.call(sdk.DASHBOARD_SERVER_URL,
+                                                Optional.of(SERVICE_NAME),
+                                                CallMethod.Get,
+                                                Optional.of(headerProperties),
+                                                Optional.of(Destination.DASHBOARD),
+                                                Optional.of((Map.of("request", "sub"))));
+                                    }
+                            ).apply(Optional.of(Destination.XQ), maybeArgs);
 
-        return CompletableFuture.completedFuture(
-                authorize
-                        .andThen((xqAccessToken) -> {
-                                    Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", xqAccessToken));
-                                    return sdk.call(sdk.DASHBOARD_SERVER_URL,
-                                            Optional.of(SERVICE_NAME),
-                                            CallMethod.Get,
-                                            Optional.of(headerProperties),
-                                            Optional.of(Destination.DASHBOARD),
-                                            Optional.of((Map.of("request", "sub"))));
-                                }
-                        ).apply(Optional.of(Destination.XQ), maybeArgs)
-        )
-                .thenApply((ServerResponse serverResponse) -> {
-                    switch (serverResponse.status) {
-                        case Ok: {
-                            String dashboardAccessToken = (String) serverResponse.payload.get(ServerResponse.DATA);
-                            try {
-                                String activeProfile = cache.getActiveProfile(true);
-                                cache.putDashboardAccess(activeProfile, dashboardAccessToken);
-                                return serverResponse;
-                            } catch (Exception e) {
-                                return null;
-                            }
-                        }
-                        default: {
-                            return serverResponse;
-                        }
+
+            switch (serverResponse.status) {
+                case Ok: {
+                    String dashboardAccessToken = (String) serverResponse.payload.get(ServerResponse.DATA);
+                    try {
+                        String activeProfile = cache.getActiveProfile(true);
+                        cache.putDashboardAccess(activeProfile, dashboardAccessToken);
+                        return CompletableFuture.completedFuture(serverResponse);
+                    } catch (Exception e) {
+                        return null;
                     }
-                })
+                }
+                default: {
+                    return CompletableFuture.completedFuture(serverResponse);
+                }
+            }
 
-                .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getMessage()));
+
+        } catch (RuntimeException e) {
+            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
+        }
 
     }
 

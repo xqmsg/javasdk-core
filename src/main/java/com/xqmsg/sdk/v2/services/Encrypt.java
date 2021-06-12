@@ -75,10 +75,11 @@ public class Encrypt extends XQModule {
     @Override
     public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
         try {
-            return validate.andThen((result) -> {
-                try {
-                    return authorize.andThen(
-                            (authorizationToken) -> {
+            return validate
+                    .andThen((maybeValid) -> {
+                        try {
+                            return authorize
+                                    .andThen((authorizationToken) -> {
                                 Map<String, Object> args = maybeArgs.get();
                                 final String message = (String) args.get(TEXT);
                                 final List<String> recipients = (List<String>) args.get(RECIPIENTS);
@@ -127,26 +128,25 @@ public class Encrypt extends XQModule {
                                                         return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage));
                                                     }
                                                 }
-                                                case Error: {
+                                                default: {
                                                     return CompletableFuture.completedFuture(keyResponse);
                                                 }
-                                                default:
-                                                    throw new RuntimeException(String.format("switch logic for case: `%s` does not exist", keyResponse.status));
                                             }
                                         });
 
-                            }).apply(Optional.of(Destination.XQ), result);
-
-                } catch (RuntimeException e) {
-                    return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
-                }
-            }).apply(maybeArgs);
+                            })
+                                    .apply(Optional.of(Destination.XQ), maybeValid);
+                        } catch (RuntimeException e) {
+                            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
+                        }
+                    }).apply(maybeArgs);
 
         } catch (RuntimeException e) {
             return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
         }
 
     }
+
 
     @Override
     public String moduleName() {

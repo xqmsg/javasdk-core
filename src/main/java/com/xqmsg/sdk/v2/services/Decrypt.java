@@ -55,12 +55,12 @@ public class Decrypt extends XQModule {
     public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
         try {
             return validate
-                    .andThen((result) -> {
+                    .andThen((maybeValid) -> {
                         try {
                             return authorize
                                     .andThen((authorizationToken) -> {
 
-                                        Map<String, Object> args = maybeArgs.get();
+                                        Map<String, Object> args = maybeValid.get();
 
                                         String locatorToken = (String) args.get(LOCATOR_TOKEN);
                                         String encryptedText = (String) args.get(ENCRYPTED_TEXT);
@@ -81,7 +81,7 @@ public class Decrypt extends XQModule {
                                                             }
                                                         });
 
-                                    }).apply(Optional.of(Destination.XQ), result);
+                                    }).apply(Optional.of(Destination.XQ), maybeValid);
 
                         } catch (RuntimeException e) {
                             return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
