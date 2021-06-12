@@ -58,35 +58,38 @@ public class CodeValidator extends XQModule {
   @Override
   public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-    return
-            validate.andThen(
-                    preAuthorize.andThen(
-                            (temporaryAccessToken) -> {
+    try {
+      return validate.andThen((maybeValidated) -> {
+        try {
+          return preAuthorize.andThen(
+                  (preauthAccessToken) -> {
 
-                                Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", temporaryAccessToken));
-                                ServerResponse validationResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                                        Optional.of(SERVICE_NAME),
-                                        CallMethod.Get,
-                                        Optional.of(headerProperties),
-                                        Optional.of(Destination.XQ),
-                                        maybeArgs);
-                                switch (validationResponse.status) {
-                                  case Ok: {
-                                    return ExchangeForAccessToken
-                                            .with(sdk)
-                                            .supplyAsync(Optional.empty());
-                                  }
-                                  default: {
-                                    return CompletableFuture.completedFuture(validationResponse);
-                                  }
-                                }
+                    Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", preauthAccessToken));
+                    ServerResponse validationResponse = sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                            Optional.of(SERVICE_NAME),
+                            CallMethod.Get,
+                            Optional.of(headerProperties),
+                            Optional.of(Destination.XQ),
+                            maybeArgs);
 
-
-                            }))
-
-                    .apply(maybeArgs)
-                    .exceptionally(e -> new ServerResponse(CallStatus.Error, Reasons.MissingParameters, e.getMessage()));
-
+                    switch (validationResponse.status) {
+                      case Ok: {
+                        return ExchangeForAccessToken
+                                .with(sdk)
+                                .supplyAsync(Optional.empty());
+                      }
+                      default: {
+                        return CompletableFuture.completedFuture(validationResponse);
+                      }
+                    }
+                  }).apply(maybeValidated);
+        } catch (RuntimeException e) {
+          return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.Unauthorized));
+        }
+      }).apply(maybeArgs);
+    } catch (RuntimeException e) {
+      return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
+    }
 
   }
 

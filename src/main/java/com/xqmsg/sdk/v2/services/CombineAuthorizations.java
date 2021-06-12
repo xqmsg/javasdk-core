@@ -25,88 +25,92 @@ import java.util.logging.Logger;
  */
 public class CombineAuthorizations extends XQModule {
 
-  private final Logger logger = Logger.getLogger(getClass().getName(), null);
+    private final Logger logger = Logger.getLogger(getClass().getName(), null);
 
-  public static final String TOKENS = "tokens";
-  public static final String MERGED_TOKEN = "token";
-  public static final String MERGE_COUNT = "merged";
+    public static final String TOKENS = "tokens";
+    public static final String MERGED_TOKEN = "token";
+    public static final String MERGE_COUNT = "merged";
 
-  private static final String SERVICE_NAME = "combined";
+    private static final String SERVICE_NAME = "combined";
 
-  private CombineAuthorizations(XQSDK sdk) {
-    assert sdk != null : "An instance of the XQSDK is required";
-    super.sdk = sdk;
-    super.cache = sdk.getCache();
-  }
+    private CombineAuthorizations(XQSDK sdk) {
+        assert sdk != null : "An instance of the XQSDK is required";
+        super.sdk = sdk;
+        super.cache = sdk.getCache();
+    }
 
-  @Override
-  public List<String> requiredFields() {
-    return List.of(TOKENS);
-  }
+    @Override
+    public List<String> requiredFields() {
+        return List.of(TOKENS);
+    }
 
-  /**
-   * @param sdk App Settings
-   * @returns this
-   */
-  public static CombineAuthorizations with(XQSDK sdk) {
-    return new CombineAuthorizations(sdk);
-  }
+    /**
+     * @param sdk App Settings
+     * @returns this
+     */
+    public static CombineAuthorizations with(XQSDK sdk) {
+        return new CombineAuthorizations(sdk);
+    }
 
-  /**
-   * @param maybeArgs Map of request parameters supplied to this method.
-   *                  <pre>parameter details:<br>
-   *                  List<String> tokens! -  The list of tokens to merge.<br>
-   *                  Boolean dor? [false] - Should the content be deleted after opening.<br>
-   *                  </pre>
-   * @returns CompletableFuture&lt;ServerResponse#payload:{token:string, merged:long}>
-   * @apiNote !=required ?=optional [...]=default {...} map
-   */
-  @Override
-  public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
+    /**
+     * @param maybeArgs Map of request parameters supplied to this method.
+     *                  <pre>parameter details:<br>
+     *                                   List<String> tokens! -  The list of tokens to merge.<br>
+     *                                   Boolean dor? [false] - Should the content be deleted after opening.<br>
+     *                                   </pre>
+     * @returns CompletableFuture&lt;ServerResponse#payload:{token:string, merged:long}>
+     * @apiNote !=required ?=optional [...]=default {...} map
+     */
+    @Override
+    public CompletableFuture<ServerResponse> supplyAsync(Optional<Map<String, Object>> maybeArgs) {
 
-    return CompletableFuture.completedFuture(
-            validate
-                    .andThen((result) ->
-                            authorize
-                                    .andThen((authorizationToken) -> {
-                                      try {
-                                        Map<String, Object> args = result.get();
-                                        List<String> accessTokens = (List) args.get(TOKENS);
+        try {
+            return CompletableFuture.completedFuture(validate.andThen((maybeValid) -> {
+                try {
+                    return authorize.andThen(
+                            (authorizationToken) -> {
+                                try {
+                                    Map<String, Object> args = maybeValid.get();
+                                    List<String> accessTokens = (List) args.get(TOKENS);
 
-                                        if (accessTokens == null || accessTokens.size() == 0) {
-                                          for (String profile : cache.listProfiles()) {
+                                    if (accessTokens == null || accessTokens.size() == 0) {
+                                        for (String profile : cache.listProfiles()) {
                                             String xqAccess = cache.getXQAccess(profile, true);
                                             if (xqAccess != null) {
-                                              accessTokens.add(xqAccess);
+                                                accessTokens.add(xqAccess);
                                             }
-                                          }
                                         }
-                                        if (accessTokens == null || accessTokens.size() == 0) {
-                                          return new ServerResponse(CallStatus.Error, Reasons.NoneProvided, "No Access tokens available to merge");
-                                        }
+                                    }
+                                    if (accessTokens == null || accessTokens.size() == 0) {
+                                        return new ServerResponse(CallStatus.Error, Reasons.NoneProvided, "No Access tokens available to merge");
+                                    }
 
-                                        Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
+                                    Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
 
-                                        return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
-                                                Optional.of(SERVICE_NAME),
-                                                CallMethod.Post,
-                                                Optional.of(headerProperties),
-                                                Optional.of(Destination.XQ),
-                                                Optional.of(Map.of(CombineAuthorizations.TOKENS, accessTokens))
-                                        );
-                                      } catch (StatusCodeException s) {
-                                        return new ServerResponse(CallStatus.Error, Reasons.Unauthorized, s.statusMessage());
-                                      }
-                                    })
-                                    .apply(Optional.empty(), result)
-                    )
-                    .apply(maybeArgs));
-  }
+                                    return sdk.call(sdk.SUBSCRIPTION_SERVER_URL,
+                                            Optional.of(SERVICE_NAME),
+                                            CallMethod.Post,
+                                            Optional.of(headerProperties),
+                                            Optional.of(Destination.XQ),
+                                            Optional.of(Map.of(CombineAuthorizations.TOKENS, accessTokens))
+                                    );
+                                } catch (StatusCodeException s) {
+                                    return new ServerResponse(CallStatus.Error, Reasons.Unauthorized, s.statusMessage());
+                                }
+                            }).apply(Optional.empty(), maybeValid);
+                } catch (RuntimeException e) {
+                    return unwrapException(e, CallStatus.Error, Reasons.Unauthorized);
+                }
+            }).apply(maybeArgs));
+        } catch (RuntimeException e) {
+            return CompletableFuture.completedFuture(unwrapException(e, CallStatus.Error, Reasons.InvalidPayload));
+        }
+    }
 
-  @Override
-  public String moduleName() {
-    return "AuthorizeDelegate";
-  }
+    @Override
+    public String moduleName() {
+        return "AuthorizeDelegate";
+    }
 
 
 }
