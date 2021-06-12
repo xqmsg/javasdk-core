@@ -90,7 +90,7 @@ public abstract class XQModule {
                 String temporaryAccessToken = cache.getXQPreAuthToken(activeProfile);
 
                 if (temporaryAccessToken == null) {
-                    throw new RuntimeException("", new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED, String.format("Access Token not Found for %s", activeProfile)));
+                    throw new RuntimeException("", new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED));
                 }
                 return temporaryAccessToken;
 
@@ -118,11 +118,12 @@ public abstract class XQModule {
                         }
                     }
                 } catch (StatusCodeException e) {
+                    e.printStackTrace();
                     throw new RuntimeException("", e);
                 }
 
                 if (authorizationToken == null) {
-                    throw new RuntimeException("", new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED, String.format("Access Token not Found for %s", activeProfile)));
+                    throw new RuntimeException("", new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED));
                 }
                 return authorizationToken;
 

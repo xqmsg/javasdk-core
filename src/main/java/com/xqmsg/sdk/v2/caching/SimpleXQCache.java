@@ -56,7 +56,7 @@ public class SimpleXQCache implements XQCache {
   public String getXQAccess(String user, boolean required) throws StatusCodeException {
     String accessToken = (String) map.get(makeXQAccessKey(user));
     if (required && Objects.isNull(accessToken)) {
-      throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED);
+      throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED, String.format("%s [%s]", HttpStatusCodes.getMessageForCode(HttpStatusCodes.HTTP_UNAUTHORIZED), user));
     }
     return accessToken;
   }
@@ -86,7 +86,7 @@ public class SimpleXQCache implements XQCache {
   public String getDashboardAccess(String user, boolean required) throws StatusCodeException {
     String accessToken = (String) map.get(makeDashboardAccessKey(user));
     if (required && Objects.isNull(accessToken)) {
-      throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED);
+      throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED, String.format("%s [%s]", HttpStatusCodes.getMessageForCode(HttpStatusCodes.HTTP_UNAUTHORIZED), user));
     }
     return accessToken;
   }
@@ -139,7 +139,7 @@ public class SimpleXQCache implements XQCache {
 
     String activeProfile = (String) map.get(ACTIVE_PROFILE_KEY);
     if (required && Objects.isNull(activeProfile)) {
-      throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED);
+      throw new StatusCodeException(HttpStatusCodes.HTTP_UNAUTHORIZED, String.format("%s [active profile missing]", HttpStatusCodes.getMessageForCode(HttpStatusCodes.HTTP_UNAUTHORIZED)));
     }
     return activeProfile;
   }

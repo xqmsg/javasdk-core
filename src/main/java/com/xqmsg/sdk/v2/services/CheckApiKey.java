@@ -45,7 +45,6 @@ public class CheckApiKey extends XQModule {
         return List.of(API_KEY);
     }
 
-
     /**
      * @param maybeArgs Map of request parameters supplied to this method.
      *                  <pre>parameter details:<br>

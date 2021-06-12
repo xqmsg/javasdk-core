@@ -56,7 +56,6 @@ public class Authorize extends XQModule {
         return List.of(USER);
     }
 
-
     /**
      * @param maybeArgs Map of request parameters supplied to this method.
      *                  <pre>parameter details:<br>

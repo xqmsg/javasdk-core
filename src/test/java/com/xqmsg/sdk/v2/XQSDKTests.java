@@ -865,6 +865,61 @@ class XQSDKTests {
 
     }
 
+    @Test
+    @Order(65)
+        //@Disabled
+    void testValidationError() throws Exception {
+        String moreInfo = "missing [api-key]!";
+
+        ServerResponse checkApiKeyResponse = CheckApiKey.with(sdk)
+                .supplyAsync(Optional.of((Collections.emptyMap())))
+                .get();
+
+        assertEquals(CallStatus.Error, checkApiKeyResponse.status);
+
+        assertEquals(moreInfo, checkApiKeyResponse.moreInfo());
+
+    }
+
+    @Test
+    @Order(66)
+        //@Disabled
+    void testInvalidPacketError() throws Exception {
+
+        Map<String, Object> payload = Map.of(ValidatePacket.PACKET, "123");
+
+        ServerResponse authorizationResponse = ValidatePacket
+                .with(sdk)
+                .supplyAsync(Optional.of(payload)).get();
+
+        assertEquals(CallStatus.Error, authorizationResponse.status);
+
+        assertEquals("{\"status\":\"The submitted packet is not valid\"}", authorizationResponse.moreInfo());
+
+    }
+
+    @Test
+    @Order(67)
+        //@Disabled
+    void testAuthorizationError() throws Exception {
+
+        sdk.getCache().putActiveProfile("dummy-profile");
+
+        ServerResponse authorizationResponse = FetchKey
+                .with(sdk)
+                .supplyAsync(Optional.of(Map.of(FetchKey.LOCATOR_TOKEN, "xxx-xxx-xxx"))).get();
+
+        //reset the active profile back to the test user
+        String email = System.getProperty("xqsdk-user.email");
+        sdk.getCache().putActiveProfile(email);
+
+        assertEquals(CallStatus.Error, authorizationResponse.status);
+
+        assertEquals("401 Unauthorized [dummy-profile]", authorizationResponse.moreInfo());
+
+    }
+
+
 
     @Test
     @Order(70)
