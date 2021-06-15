@@ -2,6 +2,7 @@ package com.xqmsg.sdk.v2;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.xqmsg.sdk.v2.algorithms.AESEncryption;
 import com.xqmsg.sdk.v2.algorithms.OTPv2Encryption;
@@ -96,13 +97,13 @@ public class XQSDK {
             try {
                 return makeBodyRequest(baseUrl, callMethod, mayBeService, maybeDestination, maybeHeaderProperties, maybePayload);
             } catch (IOException e) {
-                return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+                return new ServerResponse(CallStatus.Error, Reasons.IOException, e.getLocalizedMessage());
             }
         } else {
             try {
                 return makeParamRequest(baseUrl, callMethod, mayBeService, maybeDestination, maybeHeaderProperties, maybePayload);
             } catch (IOException e) {
-                return new ServerResponse(CallStatus.Error, Reasons.LocalException, e.getLocalizedMessage());
+                return new ServerResponse(CallStatus.Error, Reasons.IOException, e.getLocalizedMessage());
             }
         }
     }
@@ -174,7 +175,7 @@ public class XQSDK {
 
         String spec = String.format("%s%s%s",
                 baseUrl, maybeService.map(service -> "/" + service).orElse(""),
-                maybePayload.map(payload -> "?" + buildQeryParams(payload)).orElse(""));
+                maybePayload.map(payload -> "?" + buildQueryParams(payload)).orElse(""));
 
         URL url = new URL(spec);
 
@@ -209,7 +210,6 @@ public class XQSDK {
 
             Map<String, Object> response = receiveData(httpsConnection);
 
-            logger.info(String.format("Server Response: %s ", response));
             return convertToServerResponse(response);
 
         } catch (Exception e) {
@@ -283,7 +283,7 @@ public class XQSDK {
         return new String(shuffled);
     }
 
-    private String buildQeryParams(Map<String, Object> params) {
+    private String buildQueryParams(Map<String, Object> params) {
         return params.entrySet().stream()
                 .map(p -> p.getKey() + "=" + encode((String) p.getValue()))
                 .reduce((p1, p2) -> p1 + "&" + p2)
@@ -344,7 +344,7 @@ public class XQSDK {
                     break;
                 default: {
                     if (!responseString.contains("status")) {
-                        responseString = String.format("{status:\"OK\", data:\"%s\"}", responseString);
+                        responseString = String.format("{status:\"OK\", data:\"%s\"}", escapeDoubleQuotes(responseString));
                     }
                 }
                 break;
@@ -353,42 +353,65 @@ public class XQSDK {
 
         GsonBuilder gsonBuilder = new GsonBuilder();
 
-        gsonBuilder.registerTypeAdapter(new TypeToken<Map<String, Object>>() {
-        }.getType(), new XQMsgJSONTypeAdapter());
+        gsonBuilder.registerTypeAdapter(new TypeToken<Map<String, Object>>() {}.getType(), new XQMsgJSONTypeAdapter());
 
         Gson gson = gsonBuilder.create();
 
-        return gson.fromJson(responseString, new TypeToken<Map<String, Object>>() {
-        }.getType());
+        Map<String, Object> jsonOut = null;
+        try {
+            jsonOut = gson.fromJson(responseString, new TypeToken<Map<String, Object>>() {
+            }.getType());
+        }catch (JsonSyntaxException jse){
+            jse.printStackTrace();
+
+        }
+        return jsonOut;
+
 
     }
+    public static String escapeDoubleQuotes(String s) {
+        StringBuilder out = new StringBuilder(Math.max(16, s.length()));
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c > 127 || c == '"') {
+                out.append("\\");
+                out.append(c);
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
 
     ServerResponse convertToServerResponse(Map<String, Object> response) {
 
+        ServerResponse serverResponse = null;
         try {
             if (response == null) {
-                return new ServerResponse(CallStatus.Error, Reasons.InvalidPayload);
+                serverResponse  = new ServerResponse(CallStatus.Error, Reasons.InvalidPayload);
             }
-            if (response.containsKey("status")) {
+            else if (response.containsKey("status")) {
 
                 boolean success = response.get("status").equals("OK");
 
                 if (success) {
                     response.remove("status");
-                    return new ServerResponse(CallStatus.Ok, response);
+                    serverResponse = new ServerResponse(CallStatus.Ok, response);
                 } else {
                     String reason = (response.containsKey("reason")) ? (String) response.get("reason") : "";
-                    return new ServerResponse(CallStatus.Error, Reasons.InvalidPayload, reason);
+                    serverResponse = new ServerResponse(CallStatus.Error, Reasons.InvalidPayload, reason);
                 }
             } else {
-                return new ServerResponse(CallStatus.Error, Reasons.InvalidPayload, "Error: " + response);
+                serverResponse = new ServerResponse(CallStatus.Error, Reasons.InvalidPayload, "Error: " + response);
             }
 
         } catch (Exception e) {
             String errorMessage = e.getMessage();
-            logger.warning(errorMessage);
-            return new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage);
+            serverResponse =  new ServerResponse(CallStatus.Error, Reasons.InternalException, errorMessage);
         }
+        logger.info(String.format("ServerResponse: %s ", serverResponse));
+        return serverResponse;
     }
 
     /**

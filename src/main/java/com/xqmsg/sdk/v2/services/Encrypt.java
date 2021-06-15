@@ -125,7 +125,7 @@ public class Encrypt extends XQModule {
                                                     } catch (Exception e) {
                                                         String errorMessage = e.getMessage();
                                                         logger.warning(errorMessage);
-                                                        return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.LocalException, errorMessage));
+                                                        return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.InternalException, errorMessage));
                                                     }
                                                 }
                                                 default: {

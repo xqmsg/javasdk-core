@@ -156,7 +156,7 @@ public class OTPv2Encryption implements XQAlgorithm {
       if (keyData.length < 64) {
         String message = "OTP Source Key must be at least 2048 bytes.";
         logger.warning(message);
-        return new ServerResponse(CallStatus.Error, Reasons.OTPKeyLengthIncorrect, message);
+        return new ServerResponse(CallStatus.Error, Reasons.InvalidEncryptionKey, message);
       }
 
       try (FileInputStream instream = new FileInputStream(sourceFilePath.toFile());
@@ -260,14 +260,14 @@ public class OTPv2Encryption implements XQAlgorithm {
 
                   if (key == null) {
                     String message = "Unable to retrieve a valid key.";
-                    return new ServerResponse(CallStatus.Error, Reasons.InvalidEncryptionKey, message);
+                    return new ServerResponse(CallStatus.Error, Reasons.MissingEncryptionKey, message);
                   }
 
                   byte[] keyData = key.getBytes(StandardCharsets.UTF_8);
 
                   if (keyData.length < 64) {
                     String message = "OTP Source Key must be at least 64 bytes.";
-                    return new ServerResponse(CallStatus.Error, Reasons.OTPKeyLengthIncorrect, message);
+                    return new ServerResponse(CallStatus.Error, Reasons.InvalidEncryptionKey, message);
                   }
                   logger.info("Filename : " + new String(filenameBytes, StandardCharsets.UTF_8));
                   // Decrypt the filename using the key.
@@ -322,10 +322,10 @@ public class OTPv2Encryption implements XQAlgorithm {
 
       } catch (FileNotFoundException e) {
         e.printStackTrace();
-        return new ServerResponse(CallStatus.Error, Reasons.InternalException, e.getMessage());
+        return new ServerResponse(CallStatus.Error, Reasons.FileNotFound, e.getMessage());
       } catch (IOException | InterruptedException | ExecutionException e) {
         e.printStackTrace();
-        return new ServerResponse(CallStatus.Error, Reasons.InternalException, e.getMessage());
+        return new ServerResponse(CallStatus.Error, Reasons.IOException, e.getMessage());
 
       }
     });

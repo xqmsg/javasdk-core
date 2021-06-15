@@ -1304,9 +1304,9 @@ class XQSDKTests {
                                             .supplyAsync(Optional.of(Map.of(CodeValidator.PIN, pin)));
                                 }
                                 default: {
-                                    logger.warning(String.format("`testUserAccessRequest` failed at authorization stage, reason: %s", authorizationResponse.moreInfo()));
+                                    logger.warning(String.format("`authorize` failed at authorization stage, reason: %s", authorizationResponse.moreInfo()));
                                     fail();
-                                    return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.EncryptionFailed, authorizationResponse.moreInfo()));
+                                    return CompletableFuture.completedFuture(new ServerResponse(CallStatus.Error, Reasons.LocalException, authorizationResponse.moreInfo()));
                                 }
                             }
                         }

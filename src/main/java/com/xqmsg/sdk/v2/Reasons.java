@@ -48,5 +48,7 @@ public enum Reasons {
 
     Unauthorized,
 
+    MissingEncryptionKey,
+
     NoneProvided
 }

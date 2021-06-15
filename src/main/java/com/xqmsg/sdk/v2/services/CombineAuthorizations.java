@@ -82,7 +82,7 @@ public class CombineAuthorizations extends XQModule {
                                         }
                                     }
                                     if (accessTokens == null || accessTokens.size() == 0) {
-                                        return new ServerResponse(CallStatus.Error, Reasons.NoneProvided, "No Access tokens available to merge");
+                                        return new ServerResponse(CallStatus.Error, Reasons.MissingParameters, "No Access tokens available to merge");
                                     }
 
                                     Map<String, String> headerProperties = Map.of("Authorization", String.format("Bearer %s", authorizationToken));
